@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bat Galim Beach – Wind Forecast</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:Arial,sans-serif;
+  background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+  padding:20px;
+}
+.container{
+  max-width:1400px;margin:auto;background:#fff;
+  border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.2);
+  overflow:hidden;
+}
+.header{
+  background:linear-gradient(135deg,#2c3e50 0%,#3498db 100%);
+  color:#fff;padding:30px;text-align:center;
+}
+.header h1{font-size:2em;margin-bottom:8px}
+
+.chart-container{padding:20px}
+.day-separator{
+  background:#3498db;color:#fff;
+  padding:8px;margin-top:15px;
+  text-align:center;font-weight:bold;border-radius:6px;
+}
+
+.day-block{
+  display:flex;
+  border:1px solid rgba(0,0,0,.08);
+  border-radius:10px;
+  margin-top:10px;
+  overflow:hidden;
+  background:#fff;
+}
+
+.y-axis{
+  width:62px;
+  border-right:1px solid rgba(0,0,0,.08);
+  background:#fff;
+  padding:8px 6px;
+}
+.y-axis .unit{
+  font-size:11px;font-weight:700;
+  color:#2c3e50;text-align:center;margin-bottom:6px;
+}
+.y-axis .ticks{
+  height:220px;
+  display:flex;flex-direction:column;
+  justify-content:space-between;
+  font-size:12px;color:#555;
+  text-align:right;padding-right:4px;
+}
+
+.day-scroll{
+  flex:1;overflow-x:auto;overflow-y:hidden;
+  padding:10px 0;
+}
+.day-scroll-inner{padding:0 10px}
+
+.chart-wrapper{margin-bottom:6px}
+
+.direction-row{
+  display:flex;background:#ecf0f1;
+  border-radius:8px;padding:10px 0;margin-top:10px;
+}
+.time-row{display:flex;padding:8px 0}
+
+.direction-item,.time-item{
+  text-align:center;flex-shrink:0;padding:5px;
+}
+.arrow{font-size:1.5em}
+.degree{font-size:.75em;color:#666}
+.time-label{font-size:.8em;font-weight:600}
+
+.legend{
+  display:flex;justify-content:center;gap:16px;
+  padding:12px;background:#f8f9fa;
+  margin:10px 20px;border-radius:8px;
+  font-size:.85em;flex-wrap:wrap;
+}
+.legend span{display:flex;align-items:center;gap:6px}
+.box{width:22px;height:12px;border-radius:3px}
+</style>
+</head>
+
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🌊 Bat Galim Beach Wind Forecast</h1>
+    <p>ICON Global • +10 kts for E–SE winds (80°–125°)</p>
+  </div>
+
+  <div class="legend">
+    <span><div class="box" style="background:#3498db"></div>&lt;15</span>
+    <span><div class="box" style="background:#f39c12"></div>15–20</span>
+    <span><div class="box" style="background:#e67e22"></div>20–25</span>
+    <span><div class="box" style="background:#d35400"></div>25–30</span>
+    <span><div class="box" style="background:#c0392b"></div>30+</span>
+    <span style="margin-left:10px;">Wind = solid • Gusts = dashed</span>
+  </div>
+
+  <div id="content" class="chart-container">Loading…</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<script>
+const LAT=32.8333, LON=34.9667;
+const charts=[];
+const ITEM_W=70, CANVAS_H=220;
+let syncingScroll=false;
+
+function speedColor(v){
+  if(v < 15) return '#3498db';
+  if(v < 20) return '#f39c12';
+  if(v < 25) return '#e67e22';
+  if(v < 30) return '#d35400';
+  return '#c0392b';
+}
+
+async function loadForecast(){
+  const r=await fetch(
+    `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&hourly=windspeed_10m,winddirection_10m,windgusts_10m&windspeed_unit=kn&timezone=Asia/Jerusalem&forecast_days=7&models=icon_global`,
+    {cache:'no-store'}
+  );
+  render(await r.json());
+}
+
+function render(data){
+  charts.forEach(c=>c.destroy()); charts.length=0;
+  const h=data.hourly;
+  let html='',cur='',day=[];
+  window.days={};
+
+  for(let i=0;i<h.time.length;i++){
+    const t=new Date(h.time[i]);
+    const d=t.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+    if(d!==cur){
+      if(day.length) html+=dayBlock(cur,day);
+      cur=d; day=[];
+    }
+    const dir=h.winddirection_10m[i];
+    const bonus=(dir>=80&&dir<=125)?10:0;
+    day.push({
+      time:t,
+      speed:Math.round(h.windspeed_10m[i]+bonus),
+      gust:Math.round(h.windgusts_10m[i]+bonus),
+      dir
+    });
+  }
+  if(day.length) html+=dayBlock(cur,day);
+  document.getElementById('content').innerHTML=html;
+  Object.values(window.days).forEach(drawDay);
+  syncScroll();
+  scrollTo9();
+}
+
+function idSafe(s){return s.replace(/[^a-z0-9]/gi,'_');}
+
+function dayBlock(label,data){
+  const id=idSafe(label);
+  window.days[id]={label,data};
+  return `
+    <div class="day-separator">${label}</div>
+    <div class="day-block">
+      <div class="y-axis">
+        <div class="unit">kts</div>
+        <div class="ticks" id="ticks_${id}"></div>
+      </div>
+      <div class="day-scroll" id="scroll_${id}">
+        <div class="day-scroll-inner" id="inner_${id}">
+          <div class="chart-wrapper"><canvas id="c_${id}"></canvas></div>
+          <div class="direction-row" id="d_${id}"></div>
+          <div class="time-row" id="t_${id}"></div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function drawDay({label,data}){
+  const id=idSafe(label);
+  const inner=document.getElementById(`inner_${id}`);
+  const dRow=document.getElementById(`d_${id}`);
+  const tRow=document.getElementById(`t_${id}`);
+
+  inner.style.width=(ITEM_W*data.length+20)+'px';
+
+  data.forEach(o=>{
+    dRow.innerHTML+=`
+      <div class="direction-item" style="width:${ITEM_W}px">
+        <div class="arrow" style="transform:rotate(${o.dir}deg)">↓</div>
+        <div class="degree">${Math.round(o.dir)}°</div>
+      </div>`;
+    tRow.innerHTML+=`
+      <div class="time-item" style="width:${ITEM_W}px">
+        <div class="time-label">${o.time.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false})}</div>
+      </div>`;
+  });
+
+  const maxV=Math.max(...data.map(o=>Math.max(o.speed,o.gust)));
+  const yMax=Math.max(35,Math.ceil(maxV/5)*5);
+  document.getElementById(`ticks_${id}`).innerHTML =
+    Array.from({length:yMax/5+1},(_,i)=>`<div>${yMax-i*5}</div>`).join('');
+
+  const c=document.getElementById(`c_${id}`);
+  c.width=ITEM_W*data.length+20; c.height=CANVAS_H;
+
+  charts.push(new Chart(c,{
+    type:'line',
+    data:{
+      labels:data.map(o=>o.time),
+      datasets:[
+        {
+          label:'Wind',
+          data:data.map(o=>o.speed),
+          borderWidth:3,
+          tension:.35,
+          pointRadius:4,
+          segment:{borderColor:ctx=>speedColor(ctx.p0.parsed.y)},
+          pointBackgroundColor:ctx=>speedColor(ctx.parsed.y)
+        },
+        {
+          label:'Gusts',
+          data:data.map(o=>o.gust),
+          borderDash:[6,4],
+          borderWidth:3,
+          tension:.35,
+          pointRadius:4,
+          segment:{borderColor:ctx=>speedColor(ctx.p0.parsed.y)},
+          pointBackgroundColor:ctx=>speedColor(ctx.parsed.y)
+        }
+      ]
+    },
+    options:{
+      responsive:false,
+      interaction:{mode:'index',intersect:false},
+     plugins:{
+  legend:{ position:'top' },
+  tooltip:{
+    itemSort: (a, b) => {
+      // Gusts always first
+      if (a.dataset.label === 'Gusts') return -1;
+      if (b.dataset.label === 'Gusts') return 1;
+      return 0;
+    },
+    callbacks:{
+      title: () => '',
+      label: (ctx) => {
+        if (ctx.dataset.label === 'Gusts')
+          return `Gusts: ${ctx.parsed.y} kts`;
+        if (ctx.dataset.label === 'Wind')
+          return `Wind: ${ctx.parsed.y} kts`;
+        return '';
+      }
+    }
+  }
+}
+,
+      scales:{
+        y:{beginAtZero:true,max:yMax},
+        x:{display:false}
+      }
+    }
+  }));
+}
+
+function syncScroll(){
+  const scrollers=[...document.querySelectorAll('.day-scroll')];
+  scrollers.forEach(s=>{
+    s.addEventListener('scroll',()=>{
+      if(syncingScroll) return;
+      syncingScroll=true;
+      scrollers.forEach(o=>{if(o!==s)o.scrollLeft=s.scrollLeft});
+      syncingScroll=false;
+    },{passive:true});
+  });
+}
+
+function scrollTo9(){
+  const days=Object.values(window.days);
+  for(const d of days){
+    const i=d.data.findIndex(o=>o.time.getHours()===9);
+    if(i>=0){
+      const x=Math.max(0,i*ITEM_W-ITEM_W);
+      document.querySelectorAll('.day-scroll').forEach(s=>s.scrollLeft=x);
+      break;
+    }
+  }
+}
+
+loadForecast();
+setInterval(loadForecast,30*60*1000);
+</script>
+</body>
+</html>
