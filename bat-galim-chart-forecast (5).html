@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bat Galim Beach - Wind Forecast Chart</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            font-size: 1.2em;
+            color: #666;
+        }
+
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #e74c3c;
+            font-size: 1.1em;
+        }
+
+        .chart-container {
+            padding: 20px;
+        }
+
+        .direction-row {
+            display: flex;
+            overflow-x: auto;
+            padding: 10px 0;
+            background: #ecf0f1;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .time-row {
+            display: flex;
+            overflow-x: auto;
+            padding: 10px 0;
+            margin-top: 5px;
+        }
+
+        .direction-item, .time-item {
+            text-align: center;
+            padding: 5px;
+            flex-shrink: 0;
+        }
+
+        .arrow {
+            font-size: 1.5em;
+            display: inline-block;
+        }
+
+        .degree {
+            font-size: 0.75em;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .time-label {
+            font-size: 0.8em;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .day-separator {
+            background: #3498db;
+            color: white;
+            padding: 8px;
+            text-align: center;
+            font-weight: bold;
+            margin-top: 15px;
+            border-radius: 5px;
+        }
+
+        .color-legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin: 10px 20px;
+            flex-wrap: wrap;
+            font-size: 0.85em;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-color-box {
+            width: 30px;
+            height: 15px;
+            border-radius: 3px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌊 Bat Galim Beach Wind Forecast</h1>
+            <p>Haifa, Israel • 32.8333°N, 34.9667°E</p>
+            <p style="font-size: 0.9em; margin-top: 5px; opacity: 0.8;">Model: DWD ICON Global</p>
+            <p style="font-size: 0.85em; margin-top: 8px; opacity: 0.9;">⚡ +10 knots added for E-SE winds (80°-125°) - local acceleration effect</p>
+        </div>
+
+        <div class="color-legend">
+            <div class="legend-item">
+                <div class="legend-color-box" style="background: #3498db;"></div>
+                <span>&lt;15 kts</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color-box" style="background: #f39c12;"></div>
+                <span>15-20 kts</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color-box" style="background: #e67e22;"></div>
+                <span>20-25 kts</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color-box" style="background: #d35400;"></div>
+                <span>25-30 kts</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color-box" style="background: #c0392b;"></div>
+                <span>30+ kts</span>
+            </div>
+        </div>
+
+        <div id="content">
+            <div class="loading">Loading forecast data...</div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Bat Galim Beach coordinates
+        const LAT = 32.8333;
+        const LON = 34.9667;
+
+        let windChart = null;
+
+        // Fetch forecast data
+        async function getForecast() {
+            try {
+                const response = await fetch(
+                    `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&hourly=windspeed_10m,winddirection_10m,windgusts_10m&windspeed_unit=kn&timezone=Asia/Jerusalem&forecast_days=7&models=icon_global`
+                );
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch forecast data');
+                }
+
+                const data = await response.json();
+                displayForecast(data);
+            } catch (error) {
+                document.getElementById('content').innerHTML = 
+                    `<div class="error">❌ Error loading forecast: ${error.message}<br><br>Please check your internet connection.</div>`;
+            }
+        }
+
+        function displayForecast(data) {
+            const hourly = data.hourly;
+            
+            let html = '<div class="chart-container">';
+            
+            // Group by day
+            let currentDay = '';
+            let dayData = [];
+            
+            for (let i = 0; i < hourly.time.length; i++) {
+                const datetime = new Date(hourly.time[i]);
+                const dayStr = datetime.toLocaleDateString('en-US', { 
+                    weekday: 'short', 
+                    month: 'short', 
+                    day: 'numeric' 
+                });
+                
+                if (dayStr !== currentDay) {
+                    if (dayData.length > 0) {
+                        html += createDayChart(currentDay, dayData);
+                    }
+                    currentDay = dayStr;
+                    dayData = [];
+                }
+                
+                const direction = hourly.winddirection_10m[i];
+                const rawSpeed = hourly.windspeed_10m[i];
+                const rawGusts = hourly.windgusts_10m[i];
+                
+                // Add 10 knots if wind is from the east (80° to 125°)
+                const isEastWind = direction >= 80 && direction <= 125;
+                const speedBonus = isEastWind ? 10 : 0;
+                
+                dayData.push({
+                    time: datetime,
+                    speed: Math.round(rawSpeed + speedBonus),
+                    gusts: Math.round(rawGusts + speedBonus),
+                    direction: direction,
+                    isEastWind: isEastWind
+                });
+            }
+            
+            // Add last day
+            if (dayData.length > 0) {
+                html += createDayChart(currentDay, dayData);
+            }
+            
+            html += '</div>';
+            document.getElementById('content').innerHTML = html;
+            
+            // Create all charts
+            createAllCharts();
+        }
+
+        function createDayChart(dayStr, dayData) {
+            const chartId = 'chart_' + dayStr.replace(/[^a-zA-Z0-9]/g, '_');
+            const dirId = 'dir_' + dayStr.replace(/[^a-zA-Z0-9]/g, '_');
+            const timeId = 'time_' + dayStr.replace(/[^a-zA-Z0-9]/g, '_');
+            
+            let html = `
+                <div class="day-separator">${dayStr}</div>
+                <div style="margin: 20px 0;">
+                    <canvas id="${chartId}"></canvas>
+                </div>
+                <div class="direction-row" id="${dirId}"></div>
+                <div class="time-row" id="${timeId}"></div>
+            `;
+            
+            // Store data for later chart creation
+            if (!window.chartData) window.chartData = {};
+            window.chartData[chartId] = {
+                dayData: dayData,
+                dirId: dirId,
+                timeId: timeId
+            };
+            
+            return html;
+        }
+
+        function createAllCharts() {
+            if (!window.chartData) return;
+            
+            for (const [chartId, info] of Object.entries(window.chartData)) {
+                const { dayData, dirId, timeId } = info;
+                const itemWidth = Math.max(50, 800 / dayData.length);
+                
+                // Create direction arrows
+                const dirContainer = document.getElementById(dirId);
+                const timeContainer = document.getElementById(timeId);
+                
+                dayData.forEach((item) => {
+                    const timeStr = item.time.toLocaleTimeString('en-US', { 
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        hour12: false 
+                    });
+                    
+                    const arrowDiv = document.createElement('div');
+                    arrowDiv.className = 'direction-item';
+                    arrowDiv.style.width = itemWidth + 'px';
+                    arrowDiv.style.background = item.isEastWind ? '#ffe6e6' : 'transparent';
+                    arrowDiv.innerHTML = `
+                        <div class="arrow" style="transform: rotate(${item.direction}deg); color: ${item.isEastWind ? '#e74c3c' : '#333'};">↓</div>
+                        <div class="degree">${Math.round(item.direction)}°</div>
+                        ${item.isEastWind ? '<div style="font-size: 0.7em; color: #e74c3c; font-weight: bold;">+10kts</div>' : ''}
+                    `;
+                    dirContainer.appendChild(arrowDiv);
+                    
+                    const timeDiv = document.createElement('div');
+                    timeDiv.className = 'time-item';
+                    timeDiv.style.width = itemWidth + 'px';
+                    timeDiv.innerHTML = `<div class="time-label">${timeStr}</div>`;
+                    timeContainer.appendChild(timeDiv);
+                });
+                
+                // Create chart
+                const ctx = document.getElementById(chartId);
+                if (!ctx) continue;
+                
+                const labels = dayData.map(d => d.time.toLocaleTimeString('en-US', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: false 
+                }));
+                
+                // Create color gradient for wind speeds
+                const windColors = dayData.map(d => {
+                    if (d.speed < 15) return '#3498db'; // Blue for under 15 kts
+                    if (d.speed < 20) return '#f39c12'; // Orange 15-20 kts
+                    if (d.speed < 25) return '#e67e22'; // Dark orange 20-25 kts
+                    if (d.speed < 30) return '#d35400'; // Red-orange 25-30 kts
+                    return '#c0392b'; // Dark red 30+ kts
+                });
+                
+                const gustColors = dayData.map(d => {
+                    if (d.gusts < 15) return '#95a5a6'; // Gray for under 15 kts
+                    if (d.gusts < 20) return '#f39c12'; // Orange 15-20 kts
+                    if (d.gusts < 25) return '#e67e22'; // Dark orange 20-25 kts
+                    if (d.gusts < 30) return '#d35400'; // Red-orange 25-30 kts
+                    return '#c0392b'; // Dark red 30+ kts
+                });
+                
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Wind Speed',
+                                data: dayData.map(d => d.speed),
+                                borderColor: function(context) {
+                                    const index = context.dataIndex;
+                                    return windColors[index];
+                                },
+                                segment: {
+                                    borderColor: function(context) {
+                                        const index = context.p0DataIndex;
+                                        return windColors[index];
+                                    }
+                                },
+                                backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                                borderWidth: 3,
+                                fill: true,
+                                tension: 0.4,
+                                pointRadius: 4,
+                                pointHoverRadius: 7,
+                                pointBackgroundColor: windColors,
+                                pointBorderColor: '#fff',
+                                pointBorderWidth: 2
+                            },
+                            {
+                                label: 'Wind Gusts',
+                                data: dayData.map(d => d.gusts),
+                                borderColor: function(context) {
+                                    const index = context.dataIndex;
+                                    return gustColors[index];
+                                },
+                                segment: {
+                                    borderColor: function(context) {
+                                        const index = context.p0DataIndex;
+                                        return gustColors[index];
+                                    }
+                                },
+                                backgroundColor: 'rgba(231, 76, 60, 0.05)',
+                                borderWidth: 3,
+                                fill: false,
+                                tension: 0.4,
+                                borderDash: [8, 4],
+                                pointRadius: 4,
+                                pointHoverRadius: 7,
+                                pointBackgroundColor: gustColors,
+                                pointBorderColor: '#fff',
+                                pointBorderWidth: 2
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        aspectRatio: 4,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: {
+                                    font: {
+                                        size: 13,
+                                        weight: 'bold'
+                                    },
+                                    usePointStyle: true,
+                                    padding: 15
+                                }
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.dataset.label + ': ' + context.parsed.y + ' kts';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Wind Speed (knots)',
+                                    font: {
+                                        size: 13,
+                                        weight: 'bold'
+                                    }
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            x: {
+                                display: false,
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        },
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    }
+                });
+            }
+        }
+
+        // Load forecast on page load
+        getForecast();
+
+        // Refresh every 30 minutes
+        setInterval(getForecast, 30 * 60 * 1000);
+    </script>
+</body>
+</html>
