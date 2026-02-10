@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Israel Beaches – Wind Forecast</title>
+
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family:Arial,sans-serif;
+    background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+    padding:14px;
+  }
+  .container{
+    max-width:1400px;margin:auto;background:#fff;
+    border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.2);
+    overflow:hidden;
+  }
+  .header{
+    background:linear-gradient(135deg,#2c3e50 0%,#3498db 100%);
+    color:#fff;padding:14px;text-align:center;
+  }
+  .header h1{font-size:1.35em;margin-bottom:6px}
+  .header p{font-size:.95em;opacity:.95}
+
+  .topbar{
+    display:flex; gap:8px; padding:10px 12px; flex-wrap:wrap;
+    background:#f3f6fb; border-bottom:1px solid rgba(0,0,0,.08);
+    justify-content:center; align-items:flex-start;
+  }
+  .btn{
+    border:1px solid rgba(0,0,0,.15);
+    background:#fff;
+    padding:8px 10px;
+    border-radius:12px;
+    cursor:pointer;
+    user-select:none;
+    min-width: 150px;
+    text-align:center;
+    transition:transform .05s ease, background .2s ease, border-color .2s ease;
+  }
+  .btn:active{ transform:scale(0.98); }
+  .btn.active{ background:#e8f2ff; border-color:#3498db; }
+  .btn .name{ font-weight:800; font-size:0.92em; color:#2c3e50; line-height:1.1; }
+  .btn .now{ margin-top:3px; font-size:0.78em; font-weight:700; color:#6c7a89; line-height:1.1; }
+
+  .toolbtn{
+    border:1px solid rgba(0,0,0,.15);
+    background:#ffffff;
+    padding:10px 12px;
+    border-radius:12px;
+    cursor:pointer;
+    user-select:none;
+    font-weight:900;
+    color:#2c3e50;
+  }
+  .toolbtn:hover{ background:#f8fbff; }
+
+  .nowbar{
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    flex-wrap:wrap;
+    padding:10px 12px;
+    background:#ffffff;
+    border-bottom:1px solid rgba(0,0,0,.08);
+    font-size:0.92em;
+  }
+  .pill{
+    background:#f8f9fa;
+    border:1px solid rgba(0,0,0,.08);
+    padding:6px 10px;
+    border-radius:999px;
+    font-weight:800;
+    color:#2c3e50;
+  }
+  .pill small{ font-weight:700; color:#6c7a89; margin-left:6px; }
+
+  .chart-container{padding:14px}
+  .day-separator{
+    background:#3498db;color:#fff;
+    padding:7px;margin-top:12px;
+    text-align:center;font-weight:bold;border-radius:6px;
+    font-size:.95em;
+  }
+  .day-block{
+    display:flex;
+    border:1px solid rgba(0,0,0,.08);
+    border-radius:10px;
+    margin-top:8px;
+    overflow:hidden;
+    background:#fff;
+  }
+  .y-axis{
+    width:54px; flex:0 0 54px;
+    border-right:1px solid rgba(0,0,0,.08);
+    background:#fff;
+    padding:6px 5px;
+  }
+  .y-axis .unit{
+    font-size:10px; font-weight:800; color:#2c3e50;
+    text-align:center; margin-bottom:4px;
+  }
+  .y-axis .ticks{
+    height:160px;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    font-size:11px;
+    color:#555;
+    text-align:right;
+    padding-right:3px;
+    font-weight:700;
+  }
+  .day-scroll{
+    flex:1 1 auto;
+    overflow-x:auto;
+    overflow-y:hidden;
+    padding:8px 0;
+  }
+  .day-scroll-inner{ padding:0 8px; }
+  .chart-wrapper{margin-bottom:4px}
+  .direction-row{
+    display:flex;background:#ecf0f1;
+    border-radius:8px;padding:8px 0;margin-top:8px;
+  }
+  .time-row{display:flex;padding:6px 0}
+  .direction-item,.time-item{ text-align:center; flex-shrink:0; padding:3px 2px; }
+  .arrow{font-size:1.15em; line-height:1}
+  .degree{font-size:.65em;color:#666; line-height:1.1}
+  .cardinal{font-size:.7em;font-weight:800;color:#2c3e50; margin-top:2px; line-height:1}
+  .time-label{font-size:.72em;font-weight:800;color:#2c3e50}
+
+  .legend{
+    display:flex;justify-content:center;gap:12px;
+    padding:10px;background:#f8f9fa;
+    margin:10px 14px;border-radius:8px;
+    font-size:.82em;flex-wrap:wrap;
+  }
+  .legend span{display:flex;align-items:center;gap:6px; font-weight:800; color:#2c3e50;}
+  .box{width:18px;height:10px;border-radius:3px}
+
+  .loading{
+    text-align:center;padding:50px 20px;
+    font-size:1.1em;color:#666; font-weight:800;
+  }
+  .error{
+    text-align:center;padding:30px 16px;
+    color:#e74c3c;font-size:1.0em;line-height:1.4; font-weight:800;
+  }
+
+  /* Modal */
+  .modal-backdrop{
+    position:fixed; inset:0;
+    background:rgba(0,0,0,.45);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:14px;
+    z-index:9999;
+  }
+  .modal{
+    width:min(920px, 98vw);
+    background:#fff;
+    border-radius:14px;
+    overflow:hidden;
+    box-shadow:0 12px 50px rgba(0,0,0,.35);
+    border:1px solid rgba(0,0,0,.12);
+  }
+  .modal-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:12px 14px;
+    background:#f3f6fb;
+    border-bottom:1px solid rgba(0,0,0,.08);
+  }
+  .modal-header .title{ font-weight:900; color:#2c3e50; }
+  .modal-header .close{
+    border:1px solid rgba(0,0,0,.15);
+    background:#fff;
+    padding:8px 10px;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:900;
+  }
+  .modal-body{ padding:12px 14px; }
+  #map{
+    width:100%;
+    height:420px;
+    border-radius:12px;
+    border:1px solid rgba(0,0,0,.1);
+    overflow:hidden;
+  }
+  .pick-row{
+    margin-top:10px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .coords{ font-weight:900; color:#2c3e50; font-size:0.95em; }
+  .hint{ color:#6c7a89; font-weight:700; font-size:0.85em; }
+
+  .input{
+    border:1px solid rgba(0,0,0,.15);
+    border-radius:12px;
+    padding:10px 12px;
+    font-weight:900;
+    color:#2c3e50;
+    min-width: 240px;
+    outline:none;
+  }
+
+  .save{
+    border:1px solid rgba(0,0,0,.15);
+    background:#e8f2ff;
+    color:#2c3e50;
+    padding:10px 12px;
+    border-radius:12px;
+    cursor:pointer;
+    font-weight:900;
+  }
+  .danger{
+    border:1px solid rgba(0,0,0,.15);
+    background:#fff0f0;
+    color:#a94442;
+    padding:10px 12px;
+    border-radius:12px;
+    cursor:pointer;
+    font-weight:900;
+  }
+
+  .right-actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+    align-items:center;
+  }
+</style>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+
+<body>
+<div class="container">
+  <div class="header">
+    <h1 id="title">🌊 Wind Forecast</h1>
+    <p id="subtitle">Loading…</p>
+  </div>
+
+  <div class="topbar" id="topbar">
+    <button type="button" class="toolbtn" id="openMapBtn">📍 Pick on map</button>
+    <div id="buttons" style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center;"></div>
+  </div>
+
+  <div class="nowbar" id="nowbar">
+    <div class="pill" id="now_status">Now: …</div>
+    <div class="pill" id="now_wind">Wind: … <small>kts</small></div>
+    <div class="pill" id="now_gust">Gust: … <small>kts</small></div>
+    <div class="pill" id="now_dir">Dir: …</div>
+  </div>
+
+  <div class="legend">
+    <span><div class="box" style="background:#e8f4f8"></div>&lt;15</span>
+    <span><div class="box" style="background:#f39c12"></div>15–20</span>
+    <span><div class="box" style="background:#e67e22"></div>20–25</span>
+    <span><div class="box" style="background:#d35400"></div>25–30</span>
+    <span><div class="box" style="background:#c0392b"></div>30+</span>
+    <span style="margin-left:6px;">Wind = solid • Gusts = dashed</span>
+  </div>
+
+  <div id="content" class="chart-container">
+    <div class="loading">Loading…</div>
+  </div>
+</div>
+
+<!-- Map modal -->
+<div class="modal-backdrop" id="modalBackdrop" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <div>
+        <div class="title">Pick a location in Israel</div>
+        <div class="hint">Click on the map to set a point • then give it a name • Save</div>
+      </div>
+      <button type="button" class="close" id="closeMapBtn">✖</button>
+    </div>
+
+    <div class="modal-body">
+      <div id="map"></div>
+
+      <div class="pick-row">
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div class="coords" id="pickedCoords">Lat/Lon: —</div>
+          <input class="input" id="placeName" placeholder="Name this place (e.g. My Spot)" maxlength="24" />
+          <div class="hint">Saved on this computer/browser (localStorage)</div>
+        </div>
+
+        <div class="right-actions">
+          <button type="button" class="save" id="savePointBtn" disabled>Save place</button>
+          <button type="button" class="danger" id="clearSavedBtn" title="Deletes all saved places">Delete saved</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+  Chart.register(window['chartjs-plugin-annotation']);
+
+  // ===== storage =====
+  const STORAGE_KEY = 'wind_forecast_saved_places_v1';
+
+  function loadSavedPlaces(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return [];
+      const arr = JSON.parse(raw);
+      if(!Array.isArray(arr)) return [];
+      // sanitize
+      return arr
+        .filter(p => p && typeof p.name==='string' && typeof p.lat==='number' && typeof p.lon==='number')
+        .map(p => ({
+          key: p.key || ('saved_' + Math.random().toString(16).slice(2)),
+          name: p.name.slice(0,24),
+          sea: 'custom',
+          shoreLat: p.lat,
+          shoreLon: p.lon,
+          applyBonus: false,
+          isSaved: true
+        }));
+    }catch{
+      return [];
+    }
+  }
+
+  function saveSavedPlaces(list){
+    const payload = list.map(p => ({ key:p.key, name:p.name, lat:p.shoreLat, lon:p.shoreLon }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  }
+
+  function offshore100mWest(lat, lon) {
+    const meters = 100;
+    const metersPerDegLon = 111320 * Math.cos(lat * Math.PI/180);
+    const dLon = meters / metersPerDegLon;
+    return { lat, lon: lon - dLon };
+  }
+
+  // ===== base locations =====
+  const BASE_LOCATIONS = [
+    { key:'ashkelon',  name:'Ashkelon Beach',        sea:'med',  shoreLat:31.6650, shoreLon:34.5530, applyBonus:false },
+    { key:'ashdod',    name:'Ashdod Beach',          sea:'med',  shoreLat:31.7921, shoreLon:34.6497, applyBonus:false },
+    { key:'batyam',    name:'Bat Yam Beach',         sea:'med',  shoreLat:32.0238, shoreLon:34.7519, applyBonus:false },
+    { key:'telbaruch', name:'Tel Baruch (TLV)',      sea:'med',  shoreLat:32.1220, shoreLon:34.7900, applyBonus:false },
+    { key:'dor',       name:'Dor Beach (Hof Dor)',   sea:'med',  shoreLat:32.6078, shoreLon:34.9233, applyBonus:false },
+    { key:'batgalim',  name:'Bat Galim (Haifa)',     sea:'med',  shoreLat:32.8333, shoreLon:34.9667, applyBonus:true  },
+    { key:'migdal',    name:'Migdal (Kinneret)',     sea:'lake', shoreLat:32.8390, shoreLon:35.4950, applyBonus:false }
+  ];
+
+  // ===== locations runtime list =====
+  let LOCATIONS = [];
+
+  function computeForecastCoords(loc){
+    if (loc.sea === 'med') {
+      const p = offshore100mWest(loc.shoreLat, loc.shoreLon);
+      loc.forecastLat = p.lat;
+      loc.forecastLon = p.lon;
+    } else {
+      loc.forecastLat = loc.shoreLat;
+      loc.forecastLon = loc.shoreLon;
+    }
+  }
+
+  function rebuildLocations(){
+    const saved = loadSavedPlaces();
+    LOCATIONS = [...BASE_LOCATIONS, ...saved];
+    LOCATIONS.forEach(computeForecastCoords);
+  }
+
+  rebuildLocations();
+
+  let currentIndex = 0;
+
+  const ITEM_W = 44;
+  const CANVAS_H = 160;
+
+  const charts = [];
+  let syncingScroll = false;
+
+  const currentCache = {};
+  let currentFetchToken = 0;
+
+  function speedColor(v){
+    if (v < 15) return '#3498db';
+    if (v < 20) return '#f39c12';
+    if (v < 25) return '#e67e22';
+    if (v < 30) return '#d35400';
+    return '#c0392b';
+  }
+
+  function degToCardinal(deg){
+    const dirs = ['N','NE','E','SE','S','SW','W','NW'];
+    const i = Math.round((((deg % 360) + 360) % 360) / 45) % 8;
+    return dirs[i];
+  }
+
+  function setHeader(){
+    const loc = LOCATIONS[currentIndex];
+    const bonusText = loc.applyBonus ? ' • +10 kts for E–SE winds (80°–125°)' : '';
+    document.getElementById('title').textContent = `🌊 ${loc.name} Wind Forecast`;
+    const coordText = `Forecast: ${loc.forecastLat.toFixed(5)}°N, ${loc.forecastLon.toFixed(5)}°E`;
+    document.getElementById('subtitle').textContent = `${coordText} • Model: ICON Global${bonusText}`;
+  }
+
+  function buildForecastUrl(lat, lon){
+    return `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+           `&hourly=windspeed_10m,winddirection_10m,windgusts_10m` +
+           `&current=windspeed_10m,winddirection_10m,windgusts_10m` +
+           `&windspeed_unit=kn&timezone=Asia/Jerusalem&forecast_days=7&models=icon_global`;
+  }
+
+  function setNowBarLoading(){
+    document.getElementById('now_status').textContent = 'Now: …';
+    document.getElementById('now_wind').innerHTML = 'Wind: … <small>kts</small>';
+    document.getElementById('now_gust').innerHTML = 'Gust: … <small>kts</small>';
+    document.getElementById('now_dir').textContent = 'Dir: …';
+  }
+
+  function setNowBarUnavailable(){
+    document.getElementById('now_status').textContent = 'Now: unavailable';
+    document.getElementById('now_wind').innerHTML = 'Wind: — <small>kts</small>';
+    document.getElementById('now_gust').innerHTML = 'Gust: — <small>kts</small>';
+    document.getElementById('now_dir').textContent = 'Dir: —';
+  }
+
+  function renderSelectedNowFromCache(){
+    const loc = LOCATIONS[currentIndex];
+    const c = currentCache[loc.key];
+    if(!c){ setNowBarLoading(); return; }
+    document.getElementById('now_status').textContent = c.timeStr ? `Now (${c.timeStr})` : 'Now';
+    document.getElementById('now_wind').innerHTML = `Wind: ${c.wind} <small>kts</small>`;
+    document.getElementById('now_gust').innerHTML = `Gust: ${c.gust} <small>kts</small>`;
+    document.getElementById('now_dir').textContent = `Dir: ${c.card} (${c.dir}°)`;
+  }
+
+  function updateButtonNowText(locKey, text){
+    const el = document.getElementById(`btn_now_${locKey}`);
+    if (el) el.textContent = text;
+  }
+
+  function buildButtons(){
+    const wrap = document.getElementById('buttons');
+    wrap.innerHTML = '';
+
+    LOCATIONS.forEach((loc, idx) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn' + (idx === currentIndex ? ' active' : '');
+      b.innerHTML = `
+        <div class="name">${loc.name}</div>
+        <div class="now" id="btn_now_${loc.key}">Now: …</div>
+      `;
+      b.addEventListener('click', () => {
+        currentIndex = idx;
+        document.querySelectorAll('.btn').forEach((x,i)=>x.classList.toggle('active', i===idx));
+        loadForecastForSelected();
+        renderSelectedNowFromCache();
+      });
+      wrap.appendChild(b);
+    });
+  }
+
+  async function refreshCurrentForAllButtons(){
+    const token = ++currentFetchToken;
+    LOCATIONS.forEach(loc => updateButtonNowText(loc.key, 'Now: …'));
+
+    await Promise.allSettled(
+      LOCATIONS.map(async (loc) => {
+        try{
+          const r = await fetch(buildForecastUrl(loc.forecastLat, loc.forecastLon), { cache:'no-store' });
+          if(!r.ok) throw new Error('API');
+          const data = await r.json();
+          const c = data.current;
+          if(!c || typeof c.windspeed_10m !== 'number') throw new Error('no current');
+
+          let dir = Number(c.winddirection_10m);
+          let wind = Math.round(Number(c.windspeed_10m));
+          let gust = Math.round(Number(c.windgusts_10m));
+
+          if (loc.applyBonus && dir >= 80 && dir <= 125){
+            wind += 10; gust += 10;
+          }
+
+          const card = degToCardinal(dir);
+          const timeStr = data.current?.time
+            ? new Date(data.current.time).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false})
+            : '';
+
+          if (token !== currentFetchToken) return;
+
+          currentCache[loc.key] = { wind, gust, dir: Math.round(dir), card, timeStr };
+          updateButtonNowText(loc.key, `Now: ${wind}/${gust} ${card}`);
+          if (LOCATIONS[currentIndex].key === loc.key) renderSelectedNowFromCache();
+        }catch{
+          if (token !== currentFetchToken) return;
+          updateButtonNowText(loc.key, 'Now: —');
+        }
+      })
+    );
+  }
+
+  async function loadForecastForSelected(){
+    setHeader();
+    document.getElementById('content').innerHTML = `<div class="loading">Loading…</div>`;
+    const loc = LOCATIONS[currentIndex];
+
+    try{
+      const r = await fetch(buildForecastUrl(loc.forecastLat, loc.forecastLon), { cache:'no-store' });
+      if(!r.ok) throw new Error('API error');
+      const data = await r.json();
+
+      const c = data.current;
+      if(c && typeof c.windspeed_10m === 'number'){
+        let dir = Number(c.winddirection_10m);
+        let wind = Math.round(Number(c.windspeed_10m));
+        let gust = Math.round(Number(c.windgusts_10m));
+        if (loc.applyBonus && dir >= 80 && dir <= 125){ wind += 10; gust += 10; }
+        currentCache[loc.key] = {
+          wind, gust,
+          dir: Math.round(dir),
+          card: degToCardinal(dir),
+          timeStr: data.current?.time
+            ? new Date(data.current.time).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false})
+            : ''
+        };
+        updateButtonNowText(loc.key, `Now: ${wind}/${gust} ${currentCache[loc.key].card}`);
+        renderSelectedNowFromCache();
+      }
+
+      renderForecast(data, loc);
+    }catch(e){
+      document.getElementById('content').innerHTML =
+        `<div class="error">❌ Failed to load forecast.<br><br>
+         If you opened as <b>file://</b> and your browser blocks requests, run:<br>
+         <code>python -m http.server 8000</code><br>
+         and open: <code>http://localhost:8000/yourfile.html</code></div>`;
+      setNowBarUnavailable();
+    }
+  }
+
+  function renderForecast(data, loc){
+    charts.forEach(c => { try{ c.destroy(); }catch{} });
+    charts.length = 0;
+
+    const h = data.hourly;
+    let html = '';
+    let curDay = '';
+    let day = [];
+    window.days = {};
+
+    for(let i=0;i<h.time.length;i++){
+      const t = new Date(h.time[i]);
+      const dLabel = t.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+
+      if(dLabel !== curDay){
+        if(day.length) html += dayBlock(curDay, day);
+        curDay = dLabel;
+        day = [];
+      }
+
+      const dir = Number(h.winddirection_10m[i]);
+      const rawSpeed = Number(h.windspeed_10m[i]);
+      const rawGust  = Number(h.windgusts_10m[i]);
+      const bonus = (loc.applyBonus && dir >= 80 && dir <= 125) ? 10 : 0;
+
+      day.push({ time:t, speed:Math.round(rawSpeed+bonus), gust:Math.round(rawGust+bonus), dir });
+    }
+    if(day.length) html += dayBlock(curDay, day);
+
+    document.getElementById('content').innerHTML = html;
+    Object.values(window.days).forEach(drawDay);
+    wireScrollSync();
+    scrollAllToNineAM();
+  }
+
+  function dayBlock(label, data){
+    const id = label.replace(/[^a-z0-9]/gi,'_');
+    window.days[id] = { label, data };
+
+    return `
+      <div class="day-separator">${label}</div>
+      <div class="day-block">
+        <div class="y-axis">
+          <div class="unit">kts</div>
+          <div class="ticks" id="ticks_${id}"></div>
+        </div>
+        <div class="day-scroll">
+          <div class="day-scroll-inner" id="inner_${id}">
+            <div class="chart-wrapper"><canvas id="c_${id}"></canvas></div>
+            <div class="direction-row" id="d_${id}"></div>
+            <div class="time-row" id="t_${id}"></div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function buildYAxisTicks(id, yMax){
+    const ticksEl = document.getElementById(`ticks_${id}`);
+    const step = 5;
+    const values = [];
+    for(let v=yMax; v>=0; v-=step) values.push(v);
+    ticksEl.innerHTML = values.map(v => `<div>${v}</div>`).join('');
+  }
+
+  function drawDay({ label, data }){
+    const id = label.replace(/[^a-z0-9]/gi,'_');
+
+    const inner = document.getElementById(`inner_${id}`);
+    const dRow  = document.getElementById(`d_${id}`);
+    const tRow  = document.getElementById(`t_${id}`);
+
+    const totalW = (ITEM_W * data.length) + 16;
+    inner.style.width = totalW + 'px';
+
+    for(const o of data){
+      const card = degToCardinal(o.dir);
+      dRow.insertAdjacentHTML('beforeend', `
+        <div class="direction-item" style="width:${ITEM_W}px">
+          <div class="arrow" style="transform:rotate(${o.dir}deg)">↓</div>
+          <div class="cardinal">${card}</div>
+          <div class="degree">${Math.round(o.dir)}°</div>
+        </div>
+      `);
+
+      tRow.insertAdjacentHTML('beforeend', `
+        <div class="time-item" style="width:${ITEM_W}px">
+          <div class="time-label">${o.time.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false})}</div>
+        </div>
+      `);
+    }
+
+    const maxV = Math.max(...data.map(o => Math.max(o.speed, o.gust)));
+    const yMax = Math.max(35, Math.ceil(maxV / 5) * 5);
+    buildYAxisTicks(id, yMax);
+
+    const c = document.getElementById(`c_${id}`);
+    c.width  = totalW;
+    c.height = CANVAS_H;
+
+    const bandAnnotations = {
+      band0: { type:'box', yMin: 0,  yMax: 15, backgroundColor:'rgba(232,244,248,0.35)', borderWidth:0 },
+      band1: { type:'box', yMin: 15, yMax: 20, backgroundColor:'rgba(243,156,18,0.18)', borderWidth:0 },
+      band2: { type:'box', yMin: 20, yMax: 25, backgroundColor:'rgba(230,126,34,0.20)', borderWidth:0 },
+      band3: { type:'box', yMin: 25, yMax: 30, backgroundColor:'rgba(211,84,0,0.22)', borderWidth:0 },
+      band4: { type:'box', yMin: 30, yMax: yMax, backgroundColor:'rgba(192,57,43,0.24)', borderWidth:0 }
+    };
+
+    charts.push(new Chart(c, {
+      type: 'line',
+      data: {
+        labels: data.map(o => o.time),
+        datasets: [
+          {
+            label: 'Wind',
+            data: data.map(o => o.speed),
+            borderWidth: 2.5,
+            tension: 0.32,
+            pointRadius: 3,
+            segment: { borderColor: ctx => speedColor(ctx.p0.parsed.y) },
+            pointBackgroundColor: ctx => speedColor(ctx.parsed.y)
+          },
+          {
+            label: 'Gusts',
+            data: data.map(o => o.gust),
+            borderDash: [5,4],
+            borderWidth: 2.5,
+            tension: 0.32,
+            pointRadius: 3,
+            segment: { borderColor: ctx => speedColor(ctx.p0.parsed.y) },
+            pointBackgroundColor: ctx => speedColor(ctx.parsed.y)
+          }
+        ]
+      },
+      options: {
+        responsive: false,
+        interaction: { mode:'index', intersect:false },
+        plugins: {
+          legend: { position: 'top' },
+          annotation: { annotations: bandAnnotations },
+          tooltip: {
+            itemSort: (a, b) => (a.dataset.label === 'Gusts' ? -1 : 1),
+            padding: 6,
+            bodyFont: { size: 12, weight: 'bold' },
+            callbacks: { title: () => '', label: (ctx) => `${ctx.parsed.y}` }
+          }
+        },
+        scales: {
+          y: { beginAtZero:true, max:yMax, ticks:{ stepSize:5 }, grid:{ color:'rgba(0,0,0,0.10)' } },
+          x: { display:false }
+        }
+      }
+    }));
+  }
+
+  function wireScrollSync(){
+    const scrollers = Array.from(document.querySelectorAll('.day-scroll'));
+    scrollers.forEach(sc => {
+      sc.addEventListener('scroll', () => {
+        if(syncingScroll) return;
+        syncingScroll = true;
+        const x = sc.scrollLeft;
+        for(const other of scrollers){
+          if(other !== sc) other.scrollLeft = x;
+        }
+        syncingScroll = false;
+      }, { passive:true });
+    });
+  }
+
+  function scrollAllToNineAM(){
+    const scrollers = Array.from(document.querySelectorAll('.day-scroll'));
+    if(scrollers.length === 0) return;
+
+    let targetX = 0;
+    const dayEntries = Object.values(window.days || {});
+    for(const day of dayEntries){
+      const idx = day.data.findIndex(o => o.time.getHours() === 9);
+      if(idx >= 0){
+        targetX = Math.max(0, (idx * ITEM_W) - (ITEM_W * 1));
+        break;
+      }
+    }
+    syncingScroll = true;
+    for(const sc of scrollers) sc.scrollLeft = targetX;
+    syncingScroll = false;
+  }
+
+  // ===== Map picker + Save =====
+  const modalBackdrop = document.getElementById('modalBackdrop');
+  const openMapBtn = document.getElementById('openMapBtn');
+  const closeMapBtn = document.getElementById('closeMapBtn');
+  const savePointBtn = document.getElementById('savePointBtn');
+  const clearSavedBtn = document.getElementById('clearSavedBtn');
+  const pickedCoordsEl = document.getElementById('pickedCoords');
+  const placeNameEl = document.getElementById('placeName');
+
+  let map, marker, pickedLat = null, pickedLon = null;
+  let mapInitialized = false;
+
+  function openModal(){
+    modalBackdrop.style.display = 'flex';
+    modalBackdrop.setAttribute('aria-hidden', 'false');
+
+    if(!mapInitialized){
+      mapInitialized = true;
+
+      map = L.map('map', { center: [31.7, 35.0], zoom: 8, minZoom: 7, maxZoom: 18 });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
+
+      const bounds = L.latLngBounds(L.latLng(29.4, 34.1), L.latLng(33.4, 35.95));
+      map.setMaxBounds(bounds);
+
+      map.on('click', (e) => {
+        pickedLat = e.latlng.lat;
+        pickedLon = e.latlng.lng;
+
+        if(!marker) marker = L.marker([pickedLat, pickedLon]).addTo(map);
+        else marker.setLatLng([pickedLat, pickedLon]);
+
+        pickedCoordsEl.textContent = `Lat/Lon: ${pickedLat.toFixed(5)}, ${pickedLon.toFixed(5)}`;
+        savePointBtn.disabled = false;
+        placeNameEl.focus();
+      });
+
+      setTimeout(() => map.invalidateSize(), 80);
+    }else{
+      setTimeout(() => map.invalidateSize(), 80);
+    }
+  }
+
+  function closeModal(){
+    modalBackdrop.style.display = 'none';
+    modalBackdrop.setAttribute('aria-hidden', 'true');
+  }
+
+  openMapBtn.addEventListener('click', openModal);
+  closeMapBtn.addEventListener('click', closeModal);
+  modalBackdrop.addEventListener('click', (e) => { if(e.target === modalBackdrop) closeModal(); });
+
+  savePointBtn.addEventListener('click', async () => {
+    if(pickedLat == null || pickedLon == null) return;
+
+    const name = (placeNameEl.value || '').trim() || 'Saved Place';
+    const saved = loadSavedPlaces();
+
+    // unique key
+    const key = 'saved_' + Date.now().toString(16) + '_' + Math.random().toString(16).slice(2);
+
+    saved.push({
+      key,
+      name: name.slice(0,24),
+      sea: 'custom',
+      shoreLat: pickedLat,
+      shoreLon: pickedLon,
+      applyBonus: false,
+      isSaved: true
+    });
+
+    saveSavedPlaces(saved);
+
+    // rebuild and select the new one
+    rebuildLocations();
+    currentIndex = LOCATIONS.findIndex(x => x.key === key);
+    buildButtons();
+    closeModal();
+
+    // reset modal inputs
+    placeNameEl.value = '';
+    savePointBtn.disabled = true;
+
+    setNowBarLoading();
+    await loadForecastForSelected();
+    refreshCurrentForAllButtons();
+  });
+
+  clearSavedBtn.addEventListener('click', () => {
+    localStorage.removeItem(STORAGE_KEY);
+    rebuildLocations();
+    currentIndex = 0;
+    buildButtons();
+    loadForecastForSelected();
+    refreshCurrentForAllButtons();
+    alert('Saved places deleted on this computer/browser.');
+  });
+
+  // ===== INIT =====
+  buildButtons();
+  setHeader();
+  setNowBarLoading();
+
+  loadForecastForSelected();
+  refreshCurrentForAllButtons();
+
+  setInterval(refreshCurrentForAllButtons, 10 * 60 * 1000);
+  setInterval(loadForecastForSelected, 30 * 60 * 1000);
+</script>
+</body>
+</html>
