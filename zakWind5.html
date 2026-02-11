@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Wind + Waves Forecast</title>
+
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family:Arial,sans-serif;
+    background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+    padding:12px;
+  }
+  .container{
+    max-width:1400px;margin:auto;background:#fff;
+    border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.2);
+    overflow:hidden;
+  }
+  .header{
+    background:linear-gradient(135deg,#2c3e50 0%,#3498db 100%);
+    color:#fff;padding:12px;text-align:center;
+  }
+  .header h1{font-size:1.25em;margin-bottom:6px}
+  .header p{font-size:.92em;opacity:.95}
+
+  .topbar{
+    display:flex; gap:8px; padding:10px 12px; flex-wrap:wrap;
+    background:#f3f6fb; border-bottom:1px solid rgba(0,0,0,.08);
+    justify-content:center; align-items:flex-start;
+  }
+
+  .toolbtn{
+    border:1px solid rgba(0,0,0,.15);
+    background:#ffffff;
+    padding:9px 10px;
+    border-radius:12px;
+    cursor:pointer;
+    user-select:none;
+    font-weight:900;
+    color:#2c3e50;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    white-space:nowrap;
+  }
+  .toolbtn:hover{ background:#f8fbff; }
+
+  #buttons{
+    display:grid;
+    gap:8px;
+    width:100%;
+    justify-content:center;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    max-width: 1180px;
+  }
+
+  .btn{
+    position:relative;
+    border:1px solid rgba(0,0,0,.15);
+    background:#fff;
+    padding:8px 8px;
+    border-radius:12px;
+    cursor:pointer;
+    user-select:none;
+    text-align:center;
+    transition:transform .05s ease, background .2s ease, border-color .2s ease;
+    min-height: 54px;
+  }
+  .btn:active{ transform:scale(0.98); }
+  .btn.active{ background:#e8f2ff; border-color:#3498db; }
+
+  .btn .name{
+    font-weight:900;
+    font-size:0.88em;
+    color:#2c3e50;
+    line-height:1.12;
+  }
+  .btn .sub{
+    margin-top:3px;
+    font-size:0.78em;
+    font-weight:900;
+    color:#6c7a89;
+    line-height:1.05;
+  }
+
+  .delx{
+    position:absolute;
+    top:5px;
+    right:5px;
+    width:22px;
+    height:22px;
+    border-radius:9px;
+    border:1px solid rgba(0,0,0,.15);
+    background:#fff0f0;
+    color:#a94442;
+    font-weight:900;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:12px;
+  }
+  .delx:hover{ background:#ffe3e3; }
+
+  .nowbar{
+    display:flex;
+    justify-content:center;
+    gap:8px;
+    flex-wrap:wrap;
+    padding:10px 12px;
+    background:#ffffff;
+    border-bottom:1px solid rgba(0,0,0,.08);
+    font-size:0.90em;
+  }
+  .pill{
+    background:#f8f9fa;
+    border:1px solid rgba(0,0,0,.08);
+    padding:6px 10px;
+    border-radius:999px;
+    font-weight:900;
+    color:#2c3e50;
+    white-space:nowrap;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .pill small{ font-weight:800; color:#6c7a89; margin-left:0; }
+  .waveDot{
+    width:12px;height:12px;border-radius:999px;
+    border:1px solid rgba(0,0,0,.15);
+    display:inline-block;
+  }
+
+  .chart-container{padding:12px}
+  .day-separator{
+    background:#3498db;color:#fff;
+    padding:7px;margin-top:12px;
+    text-align:center;font-weight:900;border-radius:6px;
+    font-size:.95em;
+  }
+
+  .day-block{
+    display:flex;
+    border:1px solid rgba(0,0,0,.08);
+    border-radius:10px;
+    margin-top:8px;
+    overflow:hidden;
+    background:#fff;
+  }
+
+  .y-axis{
+    width:54px; flex:0 0 54px;
+    border-right:1px solid rgba(0,0,0,.08);
+    background:#fff;
+    padding:6px 5px;
+  }
+  .y-axis .unit{
+    font-size:10px; font-weight:900; color:#2c3e50;
+    text-align:center; margin-bottom:4px;
+  }
+  .y-axis .ticks{
+    height:160px;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    font-size:11px;
+    color:#555;
+    text-align:right;
+    padding-right:3px;
+    font-weight:900;
+  }
+
+  .day-scroll{
+    flex:1 1 auto;
+    overflow-x:auto;
+    overflow-y:hidden;
+    padding:8px 0;
+  }
+  .day-scroll-inner{ padding:0 8px; }
+  .chart-wrapper{margin-bottom:4px}
+
+  .direction-row{
+    display:flex;background:#ecf0f1;
+    border-radius:8px;padding:8px 0;margin-top:8px;
+  }
+  .time-row{display:flex;padding:6px 0}
+  .direction-item,.time-item{ text-align:center; flex-shrink:0; padding:3px 2px; }
+  .arrow{font-size:1.12em; line-height:1}
+  .degree{font-size:.64em;color:#666; line-height:1.1}
+  .cardinal{font-size:.70em;font-weight:900;color:#2c3e50; margin-top:2px; line-height:1}
+  .time-label{font-size:.72em;font-weight:900;color:#2c3e50}
+
+  .loading{
+    text-align:center;padding:50px 20px;
+    font-size:1.05em;color:#666; font-weight:900;
+  }
+  .error{
+    text-align:center;padding:30px 16px;
+    color:#e74c3c;font-size:1.0em;line-height:1.4; font-weight:900;
+  }
+
+  .modal-backdrop{
+    position:fixed; inset:0;
+    background:rgba(0,0,0,.45);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:12px;
+    z-index:9999;
+  }
+  .modal{
+    width:min(980px, 98vw);
+    background:#fff;
+    border-radius:14px;
+    overflow:hidden;
+    box-shadow:0 12px 50px rgba(0,0,0,.35);
+    border:1px solid rgba(0,0,0,.12);
+  }
+  .modal-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:12px 14px;
+    background:#f3f6fb;
+    border-bottom:1px solid rgba(0,0,0,.08);
+  }
+  .modal-header .title{ font-weight:900; color:#2c3e50; }
+  .modal-header .close{
+    border:1px solid rgba(0,0,0,.15);
+    background:#fff;
+    padding:8px 10px;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:900;
+  }
+  .modal-body{ padding:12px 14px; }
+
+  #map{
+    width:100%;
+    height:460px;
+    border-radius:12px;
+    border:1px solid rgba(0,0,0,.1);
+    overflow:hidden;
+  }
+
+  .pick-row{
+    margin-top:10px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    align-items:flex-start;
+    justify-content:space-between;
+  }
+  .coords{ font-weight:900; color:#2c3e50; font-size:0.95em; }
+  .hint{ color:#6c7a89; font-weight:800; font-size:0.85em; }
+  .input{
+    border:1px solid rgba(0,0,0,.15);
+    border-radius:12px;
+    padding:10px 12px;
+    font-weight:900;
+    color:#2c3e50;
+    min-width: 260px;
+    outline:none;
+  }
+  .save{
+    border:1px solid rgba(0,0,0,.15);
+    background:#e8f2ff;
+    color:#2c3e50;
+    padding:10px 12px;
+    border-radius:12px;
+    cursor:pointer;
+    font-weight:900;
+  }
+  .save:disabled{ opacity:.5; cursor:not-allowed; }
+
+  .help-section h3{ margin:10px 0 6px; color:#2c3e50; }
+  .help-grid{ display:grid; grid-template-columns: 1fr; gap:8px; }
+  .help-card{
+    border:1px solid rgba(0,0,0,.10);
+    border-radius:12px;
+    padding:10px 12px;
+    background:#fff;
+  }
+  .row{
+    display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+    margin:6px 0;
+    color:#2c3e50;
+    font-weight:900;
+    font-size:.92em;
+  }
+  .swatch{ width:26px; height:12px; border-radius:4px; border:1px solid rgba(0,0,0,.12); }
+  .small{ font-size:.88em; font-weight:900; color:#6c7a89; }
+
+  @media (max-width: 520px){
+    #buttons{ grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .btn{ min-height: 50px; }
+    .btn .name{ font-size:0.84em; }
+    .btn .sub{ font-size:0.74em; }
+  }
+</style>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+
+<body>
+<div class="container">
+  <div class="header">
+    <h1 id="title">🌊 Wind + Waves Forecast</h1>
+    <p id="subtitle">Loading…</p>
+  </div>
+
+  <div class="topbar">
+    <button type="button" class="toolbtn" id="openMapBtn">📍 Pick on map</button>
+    <button type="button" class="toolbtn" id="helpBtn">❓ Help</button>
+    <div id="buttons"></div>
+  </div>
+
+  <div class="nowbar">
+    <div class="pill" id="now_status">Now: …</div>
+    <div class="pill" id="now_wind">Wind: … <small>k</small></div>
+    <div class="pill" id="now_gust">Gust: … <small>k</small></div>
+    <div class="pill" id="now_dir">Dir: …</div>
+    <div class="pill" id="now_wave">
+      <span class="waveDot" id="now_waveDot" title="wave period color"></span>
+      Wave: … <small>m</small> / … <small>s</small>
+    </div>
+  </div>
+
+  <div id="content" class="chart-container">
+    <div class="loading">Loading…</div>
+  </div>
+</div>
+
+<!-- MAP modal -->
+<div class="modal-backdrop" id="mapBackdrop" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <div>
+        <div class="title">Pick a location</div>
+        <div class="hint">Click map → name it → Save</div>
+      </div>
+      <button type="button" class="close" id="closeMapBtn">✖</button>
+    </div>
+
+    <div class="modal-body">
+      <div id="map"></div>
+
+      <div class="pick-row">
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div class="coords" id="pickedCoords">Lat/Lon: —</div>
+          <input class="input" id="placeName" placeholder="Name this place (e.g. My Spot)" maxlength="28" />
+          <div class="hint">Saved on this computer/browser (localStorage)</div>
+        </div>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; align-items:center;">
+          <button type="button" class="save" id="savePointBtn" disabled>Save place</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HELP modal -->
+<div class="modal-backdrop" id="helpBackdrop" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <div class="title">Help – Colors & Meanings</div>
+      <button type="button" class="close" id="closeHelpBtn">✖</button>
+    </div>
+    <div class="modal-body help-section">
+      <div class="help-grid">
+
+        <div class="help-card">
+          <h3>Wind strength colors (lines)</h3>
+          <div class="row"><span class="swatch" style="background:#3498db"></span> &lt; 15 k</div>
+          <div class="row"><span class="swatch" style="background:#f39c12"></span> 15–20 k</div>
+          <div class="row"><span class="swatch" style="background:#e67e22"></span> 20–25 k</div>
+          <div class="row"><span class="swatch" style="background:#d35400"></span> 25–30 k</div>
+          <div class="row"><span class="swatch" style="background:#c0392b"></span> 30+ k</div>
+          <div class="small">Wind = solid line • Gusts = dashed line</div>
+        </div>
+
+        <div class="help-card">
+          <h3>Waves</h3>
+          <div class="small">Bar height = wave height (m). Bar color = wave period (s). Thin tick in bar = period position.</div>
+
+          <div class="row"><span class="swatch" style="background:#c0392b"></span> 3–5 s = Chop (short, messy)</div>
+          <div class="row"><span class="swatch" style="background:#e67e22"></span> 5–7 s = Short</div>
+          <div class="row"><span class="swatch" style="background:#f39c12"></span> 7–9 s = Medium</div>
+          <div class="row"><span class="swatch" style="background:#7fb3d5"></span> 9–12 s = Long</div>
+          <div class="row"><span class="swatch" style="background:#3498db"></span> 12+ s = Very long (clean swell)</div>
+          <div class="small">Dot in the “Wave” pill uses the same color code (period s).</div>
+          <div class="small"><b>Wave axis is fixed 0–3 m</b> for all charts.</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+  Chart.register(window['chartjs-plugin-annotation']);
+
+  // ===== Storage =====
+  const STORAGE_PLACES = "wind_places_all_v3";
+  const STORAGE_LAST   = "wind_last_place_key_v3";
+
+  // ===== Default places (Mediterranean NORTH -> SOUTH) + Kinneret =====
+  const DEFAULT_PLACES = [
+    { key:'batgalim',  name:'Bat Galim (Haifa)',   sea:'med',  lat:32.8333, lon:34.9667, applyBonus:true  },
+    { key:'dor',       name:'Dor Beach (Hof Dor)', sea:'med',  lat:32.6078, lon:34.9233, applyBonus:false },
+    { key:'telbaruch', name:'Tel Baruch (TLV)',   sea:'med',  lat:32.1220, lon:34.7900, applyBonus:false },
+    { key:'batyam',    name:'Bat Yam Beach',       sea:'med',  lat:32.0238, lon:34.7519, applyBonus:false },
+    { key:'ashdod',    name:'Ashdod Beach',        sea:'med',  lat:31.7921, lon:34.6497, applyBonus:false },
+    { key:'ashkelon',  name:'Ashkelon Beach',      sea:'med',  lat:31.6650, lon:34.5530, applyBonus:false },
+    { key:'migdal',    name:'Migdal (Kinneret)',   sea:'lake', lat:32.8390, lon:35.4950, applyBonus:false }
+  ];
+
+  function readPlacesRaw(){
+    try{
+      const raw = localStorage.getItem(STORAGE_PLACES);
+      if(!raw) return null;
+      const arr = JSON.parse(raw);
+      if(!Array.isArray(arr)) return null;
+      return arr;
+    }catch{ return null; }
+  }
+  function writePlacesRaw(arr){ localStorage.setItem(STORAGE_PLACES, JSON.stringify(arr)); }
+
+  function ensureDefaultsSeeded(){
+    const existing = readPlacesRaw();
+    if(existing && existing.length) return;
+    writePlacesRaw(DEFAULT_PLACES.map(p => ({...p})));
+  }
+
+  function getPlaces(){
+    const raw = readPlacesRaw() || [];
+    return raw
+      .filter(p => p && typeof p.key==='string' && typeof p.name==='string' && typeof p.lat==='number' && typeof p.lon==='number')
+      .map(p => ({
+        key: p.key,
+        name: p.name.slice(0,28),
+        lat: p.lat,
+        lon: p.lon,
+        sea: (p.sea === 'med' || p.sea === 'lake' || p.sea === 'custom') ? p.sea : 'custom',
+        applyBonus: !!p.applyBonus
+      }));
+  }
+
+  function savePlaces(list){
+    writePlacesRaw(list.map(p => ({
+      key:p.key,
+      name:(p.name||'').slice(0,28),
+      lat:p.lat,
+      lon:p.lon,
+      sea:p.sea || 'custom',
+      applyBonus: !!p.applyBonus
+    })));
+  }
+
+  function deletePlace(key){
+    const places = getPlaces().filter(p => p.key !== key);
+    savePlaces(places);
+  }
+
+  function setLastSelectedKey(key){
+    try{ localStorage.setItem(STORAGE_LAST, key); }catch{}
+  }
+  function getLastSelectedKey(){
+    try{ return localStorage.getItem(STORAGE_LAST) || ''; }catch{ return ''; }
+  }
+
+  // ===== Sea tagging for sorting =====
+  function guessSeaForPoint(lat, lon){
+    if(lat > 32.70 && lat < 33.05 && lon > 35.45 && lon < 35.70) return 'lake';
+    if(lat > 31.0 && lat < 33.5 && lon > 34.15 && lon < 35.10) return 'med';
+    return 'custom';
+  }
+
+  // ===== 100m offshore WEST for Mediterranean =====
+  function offshore100mWest(lat, lon) {
+    const meters = 100;
+    const metersPerDegLon = 111320 * Math.cos(lat * Math.PI/180);
+    const dLon = meters / metersPerDegLon;
+    return { lat, lon: lon - dLon };
+  }
+  function buildForecastPoint(place){
+    if(place.sea === 'med') return offshore100mWest(place.lat, place.lon);
+    return { lat: place.lat, lon: place.lon };
+  }
+
+  // ===== APIs =====
+  function buildWindUrl(lat, lon){
+    return `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+           `&hourly=windspeed_10m,winddirection_10m,windgusts_10m` +
+           `&current=windspeed_10m,winddirection_10m,windgusts_10m` +
+           `&windspeed_unit=kn&timezone=Asia/Jerusalem&forecast_days=7&models=icon_global`;
+  }
+  function buildMarineUrl(lat, lon){
+    return `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}` +
+           `&hourly=wave_height,wave_period` +
+           `&current=wave_height,wave_period` +
+           `&timezone=Asia/Jerusalem&forecast_days=7`;
+  }
+
+  // ===== UI state =====
+  let PLACES = [];
+  let currentIndex = 0;
+
+  const ITEM_W = 44;
+  const CANVAS_H = 160;
+  let syncingScroll = false;
+  const charts = [];
+
+  const currentCache = {};
+  let currentFetchToken = 0;
+
+  // ===== FIXED wave axis =====
+  const WAVE_Y_MIN = 0;
+  const WAVE_Y_MAX = 3;
+
+  // ===== Colors =====
+  function windColor(v){
+    if (v < 15) return '#3498db';
+    if (v < 20) return '#f39c12';
+    if (v < 25) return '#e67e22';
+    if (v < 30) return '#d35400';
+    return '#c0392b';
+  }
+
+  function wavePeriodColor(p){
+    if (!isFinite(p)) return 'rgba(0,0,0,0.08)';
+    if (p < 5)  return '#c0392b';
+    if (p < 7)  return '#e67e22';
+    if (p < 9)  return '#f39c12';
+    if (p < 12) return '#7fb3d5';
+    return '#3498db';
+  }
+
+  function degToCardinal(deg){
+    const dirs = ['N','NE','E','SE','S','SW','W','NW'];
+    const i = Math.round((((deg % 360) + 360) % 360) / 45) % 8;
+    return dirs[i];
+  }
+
+  // ===== Sorting: Med north->south for ALL med points =====
+  function sortPlaces(list){
+    const rankSea = (sea) => (sea === 'med' ? 0 : (sea === 'lake' ? 1 : 2));
+    return [...list].sort((a,b)=>{
+      const ra = rankSea(a.sea), rb = rankSea(b.sea);
+      if(ra !== rb) return ra - rb;
+      if(a.sea === 'med' && b.sea === 'med'){
+        if (b.lat !== a.lat) return b.lat - a.lat;
+        return a.name.localeCompare(b.name);
+      }
+      if(a.sea === 'lake' && b.sea === 'lake'){
+        if (b.lat !== a.lat) return b.lat - a.lat;
+        return a.name.localeCompare(b.name);
+      }
+      return a.name.localeCompare(b.name);
+    });
+  }
+
+  function reloadPlacesKeepSelection(){
+    const lastKey = PLACES[currentIndex]?.key || getLastSelectedKey();
+    PLACES = sortPlaces(getPlaces()).map(p => {
+      const fp = buildForecastPoint(p);
+      return { ...p, forecastLat: fp.lat, forecastLon: fp.lon };
+    });
+
+    let idx = PLACES.findIndex(p => p.key === lastKey);
+    if(idx < 0) idx = 0;
+    currentIndex = Math.max(0, Math.min(idx, PLACES.length - 1));
+    if(PLACES[currentIndex]) setLastSelectedKey(PLACES[currentIndex].key);
+  }
+
+  // ===== Header & Now bar =====
+  function setHeader(){
+    const loc = PLACES[currentIndex];
+    const bonusText = loc?.applyBonus ? ' • +10 k for E–SE (80°–125°)' : '';
+    const coordText = loc ? `Forecast: ${loc.forecastLat.toFixed(5)}°N, ${loc.forecastLon.toFixed(5)}°E` : '';
+    document.getElementById('title').textContent = loc ? `🌊 ${loc.name}` : '🌊 Wind + Waves Forecast';
+    document.getElementById('subtitle').textContent = coordText ? `${coordText} • Model: ICON Global${bonusText}` : 'Loading…';
+  }
+
+  function setNowBarLoading(){
+    document.getElementById('now_status').textContent = `Now: …`;
+    document.getElementById('now_wind').innerHTML   = `Wind: … <small>k</small>`;
+    document.getElementById('now_gust').innerHTML   = `Gust: … <small>k</small>`;
+    document.getElementById('now_dir').textContent  = `Dir: …`;
+    document.getElementById('now_wave').innerHTML  =
+      `<span class="waveDot" id="now_waveDot" title="wave period color"></span> Wave: … <small>m</small> / … <small>s</small>`;
+  }
+
+  function setWaveDotFromPeriod(p){
+    const dot = document.getElementById('now_waveDot');
+    if(!dot) return;
+    dot.style.background = wavePeriodColor(p);
+  }
+
+  function setNowBarUnavailable(){
+    document.getElementById('now_status').textContent = `Now: —`;
+    document.getElementById('now_wind').innerHTML   = `Wind: — <small>k</small>`;
+    document.getElementById('now_gust').innerHTML   = `Gust: — <small>k</small>`;
+    document.getElementById('now_dir').textContent  = `Dir: —`;
+    document.getElementById('now_wave').innerHTML  =
+      `<span class="waveDot" id="now_waveDot" title="wave period color"></span> Wave: — <small>m</small> / — <small>s</small>`;
+    setWaveDotFromPeriod(NaN);
+  }
+
+  function renderSelectedNowFromCache(){
+    const loc = PLACES[currentIndex];
+    if(!loc) return;
+    const c = currentCache[loc.key];
+    if(!c){ setNowBarLoading(); return; }
+
+    document.getElementById('now_status').textContent = c.timeStr ? `Now (${c.timeStr})` : `Now`;
+    document.getElementById('now_wind').innerHTML  = `Wind: ${c.wind ?? '—'} <small>k</small>`;
+    document.getElementById('now_gust').innerHTML  = `Gust: ${c.gust ?? '—'} <small>k</small>`;
+    document.getElementById('now_dir').textContent = `Dir: ${c.card ?? '—'} (${c.dir ?? '—'}°)`;
+    document.getElementById('now_wave').innerHTML  =
+      `<span class="waveDot" id="now_waveDot" title="wave period color"></span> Wave: ${c.waveH ?? '—'} <small>m</small> / ${c.waveP ?? '—'} <small>s</small>`;
+    setWaveDotFromPeriod(c.waveP);
+  }
+
+  // ===== Buttons =====
+  function updateButtonText(key, text){
+    const el = document.getElementById(`btn_rt_${key}`);
+    if(el) el.textContent = text;
+  }
+
+  function buildButtons(){
+    const wrap = document.getElementById('buttons');
+    wrap.innerHTML = '';
+
+    PLACES.forEach((loc, idx) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn' + (idx === currentIndex ? ' active' : '');
+      b.innerHTML = `
+        <div class="name">${loc.name}</div>
+        <div class="sub" id="btn_rt_${loc.key}">…</div>
+      `;
+
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'delx';
+      del.title = 'Delete';
+      del.textContent = '✖';
+      del.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        deletePlace(loc.key);
+        reloadPlacesKeepSelection();
+        buildButtons();
+        setHeader();
+        loadForecastForSelected();
+        refreshRealtimeForAllButtons();
+      });
+      b.appendChild(del);
+
+      b.addEventListener('click', () => {
+        currentIndex = idx;
+        setLastSelectedKey(loc.key);
+        document.querySelectorAll('.btn').forEach((x,i)=>x.classList.toggle('active', i===idx));
+        setHeader();
+        loadForecastForSelected();
+        refreshRealtimeForAllButtons();
+      });
+
+      wrap.appendChild(b);
+    });
+
+    PLACES.forEach(loc => {
+      const c = currentCache[loc.key];
+      updateButtonText(loc.key, c ? `${c.wind}/${c.gust} ${c.card}` : '…');
+    });
+  }
+
+  // ===== Realtime for all buttons =====
+  async function refreshRealtimeForAllButtons(){
+    const token = ++currentFetchToken;
+    PLACES.forEach(loc => updateButtonText(loc.key, '…'));
+
+    await Promise.allSettled(
+      PLACES.map(async (loc) => {
+        try{
+          const wr = await fetch(buildWindUrl(loc.forecastLat, loc.forecastLon), { cache:'no-store' });
+          if(!wr.ok) throw new Error('wind');
+          const wj = await wr.json();
+          const wc = wj.current;
+          if(!wc || typeof wc.windspeed_10m !== 'number') throw new Error('no wind current');
+
+          let dir  = Number(wc.winddirection_10m);
+          let wind = Math.round(Number(wc.windspeed_10m));
+          let gust = Math.round(Number(wc.windgusts_10m));
+          if (loc.applyBonus && dir >= 80 && dir <= 125){ wind += 10; gust += 10; }
+
+          const card = degToCardinal(dir);
+          const timeStr = wj.current?.time
+            ? new Date(wj.current.time).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false})
+            : '';
+
+          let waveH = null, waveP = null;
+          try{
+            const mr = await fetch(buildMarineUrl(loc.forecastLat, loc.forecastLon), { cache:'no-store' });
+            if(mr.ok){
+              const mj = await mr.json();
+              const mc = mj.current;
+              if(mc && typeof mc.wave_height === 'number') waveH = Number(mc.wave_height).toFixed(1);
+              if(mc && typeof mc.wave_period === 'number') waveP = Math.round(Number(mc.wave_period));
+            }
+          }catch{}
+
+          if (token !== currentFetchToken) return;
+
+          currentCache[loc.key] = { wind, gust, dir: Math.round(dir), card, timeStr, waveH, waveP };
+          updateButtonText(loc.key, `${wind}/${gust} ${card}`);
+
+          if (PLACES[currentIndex]?.key === loc.key) renderSelectedNowFromCache();
+        }catch{
+          if (token !== currentFetchToken) return;
+          updateButtonText(loc.key, '—');
+          if (PLACES[currentIndex]?.key === loc.key) setNowBarUnavailable();
+        }
+      })
+    );
+  }
+
+  // ===== Forecast =====
+  async function loadForecastForSelected(){
+    setNowBarLoading();
+    document.getElementById('content').innerHTML = `<div class="loading">Loading…</div>`;
+
+    const loc = PLACES[currentIndex];
+    if(!loc){ return; }
+
+    try{
+      const [wr, mr] = await Promise.all([
+        fetch(buildWindUrl(loc.forecastLat, loc.forecastLon),   { cache:'no-store' }),
+        fetch(buildMarineUrl(loc.forecastLat, loc.forecastLon), { cache:'no-store' })
+      ]);
+
+      if(!wr.ok) throw new Error('wind');
+      const windData = await wr.json();
+
+      let marineData = null;
+      if(mr.ok) marineData = await mr.json();
+
+      // update now
+      try{
+        const wc = windData.current;
+        if(wc && typeof wc.windspeed_10m === 'number'){
+          let dir  = Number(wc.winddirection_10m);
+          let wind = Math.round(Number(wc.windspeed_10m));
+          let gust = Math.round(Number(wc.windgusts_10m));
+          if (loc.applyBonus && dir >= 80 && dir <= 125){ wind += 10; gust += 10; }
+
+          let waveH = null, waveP = null;
+          const mc = marineData?.current;
+          if(mc && typeof mc.wave_height === 'number') waveH = Number(mc.wave_height).toFixed(1);
+          if(mc && typeof mc.wave_period === 'number') waveP = Math.round(Number(mc.wave_period));
+
+          currentCache[loc.key] = {
+            wind, gust,
+            dir: Math.round(dir),
+            card: degToCardinal(dir),
+            timeStr: windData.current?.time
+              ? new Date(windData.current.time).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false})
+              : '',
+            waveH, waveP
+          };
+
+          updateButtonText(loc.key, `${wind}/${gust} ${currentCache[loc.key].card}`);
+          renderSelectedNowFromCache();
+        } else {
+          setNowBarUnavailable();
+        }
+      }catch{
+        setNowBarUnavailable();
+      }
+
+      renderForecast(windData, marineData, loc);
+    }catch(e){
+      document.getElementById('content').innerHTML =
+        `<div class="error">❌ Failed to load forecast.<br><br>
+         If your browser blocks requests from <b>file://</b>, run:<br>
+         <code>python -m http.server 8000</code><br>
+         then open: <code>http://localhost:8000/yourfile.html</code></div>`;
+      setNowBarUnavailable();
+    }
+  }
+
+  function renderForecast(windData, marineData, loc){
+    charts.forEach(c => { try{ c.destroy(); }catch{} });
+    charts.length = 0;
+
+    const h = windData.hourly;
+
+    const marineMap = new Map();
+    if(marineData?.hourly?.time){
+      const mt = marineData.hourly.time;
+      const mh = marineData.hourly.wave_height || [];
+      const mp = marineData.hourly.wave_period || [];
+      for(let i=0;i<mt.length;i++){
+        marineMap.set(mt[i], {
+          waveH: (typeof mh[i] === 'number') ? mh[i] : null,
+          waveP: (typeof mp[i] === 'number') ? mp[i] : null
+        });
+      }
+    }
+
+    let html = '';
+    let curDay = '';
+    let day = [];
+    window.days = {};
+
+    for(let i=0;i<h.time.length;i++){
+      const tStr = h.time[i];
+      const t = new Date(tStr);
+      const dLabel = t.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+
+      if(dLabel !== curDay){
+        if(day.length) html += dayBlock(curDay, day, loc.name);
+        curDay = dLabel;
+        day = [];
+      }
+
+      const dir = Number(h.winddirection_10m[i]);
+      const rawSpeed = Number(h.windspeed_10m[i]);
+      const rawGust  = Number(h.windgusts_10m[i]);
+      const bonus = (loc.applyBonus && dir >= 80 && dir <= 125) ? 10 : 0;
+
+      const m = marineMap.get(tStr) || { waveH:null, waveP:null };
+
+      day.push({
+        time: t,
+        speed: Math.round(rawSpeed + bonus),
+        gust:  Math.round(rawGust + bonus),
+        dir,
+        waveH: (typeof m.waveH === 'number') ? m.waveH : null,
+        waveP: (typeof m.waveP === 'number') ? m.waveP : null
+      });
+    }
+    if(day.length) html += dayBlock(curDay, day, loc.name);
+
+    document.getElementById('content').innerHTML = html;
+
+    Object.values(window.days).forEach(drawDay);
+    wireScrollSync();
+    scrollAllToNineAM();
+  }
+
+  function dayBlock(dayLabel, data, locName){
+    const id = (locName + '_' + dayLabel).replace(/[^a-z0-9]/gi,'_');
+    window.days[id] = { dayLabel, data, locName };
+
+    return `
+      <div class="day-separator">${locName} • ${dayLabel}</div>
+      <div class="day-block">
+        <div class="y-axis">
+          <div class="unit">kts</div>
+          <div class="ticks" id="ticks_${id}"></div>
+        </div>
+        <div class="day-scroll">
+          <div class="day-scroll-inner" id="inner_${id}">
+            <div class="chart-wrapper"><canvas id="c_${id}"></canvas></div>
+            <div class="direction-row" id="d_${id}"></div>
+            <div class="time-row" id="t_${id}"></div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function buildYAxisTicks(id, yMax){
+    const ticksEl = document.getElementById(`ticks_${id}`);
+    const step = 5;
+    const values = [];
+    for(let v=yMax; v>=0; v-=step) values.push(v);
+    ticksEl.innerHTML = values.map(v => `<div>${v}</div>`).join('');
+  }
+
+  function drawDay(dayObj){
+    const { dayLabel, data, locName } = dayObj;
+    const id = (locName + '_' + dayLabel).replace(/[^a-z0-9]/gi,'_');
+
+    const inner = document.getElementById(`inner_${id}`);
+    const dRow  = document.getElementById(`d_${id}`);
+    const tRow  = document.getElementById(`t_${id}`);
+
+    const totalW = (ITEM_W * data.length) + 16;
+    inner.style.width = totalW + 'px';
+
+    for(const o of data){
+      const card = degToCardinal(o.dir);
+      dRow.insertAdjacentHTML('beforeend', `
+        <div class="direction-item" style="width:${ITEM_W}px">
+          <div class="arrow" style="transform:rotate(${o.dir}deg)">↓</div>
+          <div class="cardinal">${card}</div>
+          <div class="degree">${Math.round(o.dir)}°</div>
+        </div>
+      `);
+
+      tRow.insertAdjacentHTML('beforeend', `
+        <div class="time-item" style="width:${ITEM_W}px">
+          <div class="time-label">${o.time.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false})}</div>
+        </div>
+      `);
+    }
+
+    const maxV = Math.max(...data.map(o => Math.max(o.speed, o.gust)));
+    const yMax = Math.max(35, Math.ceil(maxV / 5) * 5);
+    buildYAxisTicks(id, yMax);
+
+    const c = document.getElementById(`c_${id}`);
+    c.width  = totalW;
+    c.height = CANVAS_H;
+
+    const bandAnnotations = {
+      band0: { type:'box', yScaleID:'y', yMin: 0,  yMax: 15, backgroundColor:'rgba(232,244,248,0.35)', borderWidth:0 },
+      band1: { type:'box', yScaleID:'y', yMin: 15, yMax: 20, backgroundColor:'rgba(243,156,18,0.14)', borderWidth:0 },
+      band2: { type:'box', yScaleID:'y', yMin: 20, yMax: 25, backgroundColor:'rgba(230,126,34,0.15)', borderWidth:0 },
+      band3: { type:'box', yScaleID:'y', yMin: 25, yMax: 30, backgroundColor:'rgba(211,84,0,0.16)', borderWidth:0 },
+      band4: { type:'box', yScaleID:'y', yMin: 30, yMax: yMax, backgroundColor:'rgba(192,57,43,0.16)', borderWidth:0 }
+    };
+
+    const labels = data.map(o => o.time);
+    const windArr = data.map(o => o.speed);
+    const gustArr = data.map(o => o.gust);
+
+    const waveHArr = data.map(o => (typeof o.waveH === 'number' ? o.waveH : null));
+    const wavePArr = data.map(o => (typeof o.waveP === 'number' ? o.waveP : null));
+    const waveBarColors = data.map(o => wavePeriodColor(o.waveP));
+
+    const periodMin = 3, periodMaxForScale = 14;
+
+    const periodTickPlugin = {
+      id: 'periodTickPlugin',
+      afterDatasetsDraw(chart){
+        const ctx = chart.ctx;
+        const dsIndex = chart.data.datasets.findIndex(d => d.label === 'Wave Height');
+        if(dsIndex < 0) return;
+
+        const meta = chart.getDatasetMeta(dsIndex);
+        const periodData = wavePArr;
+
+        ctx.save();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+
+        for(let i=0;i<meta.data.length;i++){
+          const bar = meta.data[i];
+          if(!bar) continue;
+          const p = periodData[i];
+          if(!isFinite(p)) continue;
+
+          const t = Math.max(0, Math.min(1, (p - periodMin) / (periodMaxForScale - periodMin)));
+          const props = bar.getProps(['x','y','base','width'], true);
+          const x = props.x;
+          const topY = props.y;
+          const baseY = props.base;
+          if(!isFinite(topY) || !isFinite(baseY)) continue;
+
+          const yLine = topY + (baseY - topY) * (0.15 + 0.65 * (1 - t));
+          const half = Math.max(5, props.width * 0.35);
+
+          ctx.beginPath();
+          ctx.moveTo(x - half, yLine);
+          ctx.lineTo(x + half, yLine);
+          ctx.stroke();
+        }
+
+        ctx.restore();
+      }
+    };
+
+    charts.push(new Chart(c, {
+      plugins: [periodTickPlugin],
+      data: {
+        labels,
+        datasets: [
+          {
+            type: 'bar',
+            label: 'Wave Height',
+            data: waveHArr,
+            yAxisID: 'yWave',
+            backgroundColor: waveBarColors,
+            borderColor: 'rgba(0,0,0,0.10)',
+            borderWidth: 1,
+            barThickness: 10,
+            maxBarThickness: 12
+          },
+          {
+            type: 'line',
+            label: 'Wind',
+            data: windArr,
+            yAxisID: 'y',
+            borderWidth: 2.5,
+            tension: 0.32,
+            pointRadius: 3,
+            segment: { borderColor: ctx => windColor(ctx.p0.parsed.y) },
+            pointBackgroundColor: ctx => windColor(ctx.parsed.y)
+          },
+          {
+            type: 'line',
+            label: 'Gusts',
+            data: gustArr,
+            yAxisID: 'y',
+            borderDash: [5,4],
+            borderWidth: 2.5,
+            tension: 0.32,
+            pointRadius: 3,
+            segment: { borderColor: ctx => windColor(ctx.p0.parsed.y) },
+            pointBackgroundColor: ctx => windColor(ctx.parsed.y)
+          }
+        ]
+      },
+      options: {
+        responsive: false,
+        interaction: { mode:'index', intersect:false },
+        plugins: {
+          legend: { position: 'top' },
+          annotation: { annotations: bandAnnotations },
+          tooltip: {
+            backgroundColor: 'rgba(0,0,0,0)',
+            borderWidth: 0,
+            padding: 6,
+            displayColors: false,
+            caretSize: 0,
+            bodyFont: { size: 12, weight: 'bold' },
+            bodyColor: '#000000',
+            titleColor: '#000000',
+            callbacks: {
+              title: () => '',
+              label: (ctx) => {
+                const lbl = ctx.dataset.label;
+                const v = ctx.parsed.y;
+                if(v == null) return '';
+                if(lbl === 'Wave Height'){
+                  const p = wavePArr[ctx.dataIndex];
+                  const pText = isFinite(p) ? ` ${Math.round(p)}s` : '';
+                  return `${(v.toFixed ? v.toFixed(1) : v)}m${pText}`;
+                }
+                if(lbl === 'Gusts') return `${v}k`;
+                if(lbl === 'Wind')  return `${v}k`;
+                return '';
+              }
+            },
+            itemSort: (a,b) => {
+              const order = { 'Wave Height':0, 'Gusts':1, 'Wind':2 };
+              return (order[a.dataset.label] ?? 99) - (order[b.dataset.label] ?? 99);
+            }
+          }
+        },
+        scales: {
+          y: { beginAtZero:true, max:yMax, display:false },
+          yWave: {
+            position:'right',
+            min: WAVE_Y_MIN,
+            max: WAVE_Y_MAX,
+            grid:{ display:false },
+            ticks:{
+              font:{ weight:'bold' },
+              stepSize: 1,
+              callback:(v)=> (Number(v).toFixed(0))
+            }
+          },
+          x: { display:false }
+        }
+      }
+    }));
+  }
+
+  // ===== scroll sync =====
+  function wireScrollSync(){
+    const scrollers = Array.from(document.querySelectorAll('.day-scroll'));
+    scrollers.forEach(sc => {
+      sc.addEventListener('scroll', () => {
+        if(syncingScroll) return;
+        syncingScroll = true;
+        const x = sc.scrollLeft;
+        for(const other of scrollers){
+          if(other !== sc) other.scrollLeft = x;
+        }
+        syncingScroll = false;
+      }, { passive:true });
+    });
+  }
+
+  function scrollAllToNineAM(){
+    const scrollers = Array.from(document.querySelectorAll('.day-scroll'));
+    if(scrollers.length === 0) return;
+
+    let targetX = 0;
+    const dayEntries = Object.values(window.days || {});
+    for(const day of dayEntries){
+      const idx = day.data.findIndex(o => o.time.getHours() === 9);
+      if(idx >= 0){
+        targetX = Math.max(0, (idx * ITEM_W) - (ITEM_W * 1));
+        break;
+      }
+    }
+    syncingScroll = true;
+    for(const sc of scrollers) sc.scrollLeft = targetX;
+    syncingScroll = false;
+  }
+
+  // ===== MAP modal (zoomed to Israel) =====
+  const mapBackdrop = document.getElementById('mapBackdrop');
+  const openMapBtn = document.getElementById('openMapBtn');
+  const closeMapBtn = document.getElementById('closeMapBtn');
+  const savePointBtn = document.getElementById('savePointBtn');
+  const pickedCoordsEl = document.getElementById('pickedCoords');
+  const placeNameEl = document.getElementById('placeName');
+
+  let map, marker, pickedLat = null, pickedLon = null;
+  let mapInitialized = false;
+
+  function openMap(){
+    mapBackdrop.style.display = 'flex';
+    mapBackdrop.setAttribute('aria-hidden', 'false');
+
+    if(!mapInitialized){
+      mapInitialized = true;
+      map = L.map('map', { center: [31.7, 34.9], zoom: 8, minZoom: 2, maxZoom: 18 });
+
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles © Esri'
+      }).addTo(map);
+
+      map.on('click', (e) => {
+        pickedLat = e.latlng.lat;
+        pickedLon = e.latlng.lng;
+
+        if(!marker) marker = L.marker([pickedLat, pickedLon]).addTo(map);
+        else marker.setLatLng([pickedLat, pickedLon]);
+
+        pickedCoordsEl.textContent = `Lat/Lon: ${pickedLat.toFixed(5)}, ${pickedLon.toFixed(5)}`;
+        savePointBtn.disabled = false;
+        placeNameEl.focus();
+      });
+
+      setTimeout(() => map.invalidateSize(), 120);
+    }else{
+      map.setView([31.7, 34.9], 8);
+      setTimeout(() => map.invalidateSize(), 120);
+    }
+  }
+
+  function closeMap(){
+    mapBackdrop.style.display = 'none';
+    mapBackdrop.setAttribute('aria-hidden', 'true');
+  }
+
+  openMapBtn.addEventListener('click', openMap);
+  closeMapBtn.addEventListener('click', closeMap);
+  mapBackdrop.addEventListener('click', (e) => { if(e.target === mapBackdrop) closeMap(); });
+
+  savePointBtn.addEventListener('click', async () => {
+    if(pickedLat == null || pickedLon == null) return;
+
+    const name = (placeNameEl.value || '').trim() || 'Saved Place';
+    const key = 'p_' + Date.now().toString(16) + '_' + Math.random().toString(16).slice(2);
+
+    const sea = guessSeaForPoint(pickedLat, pickedLon);
+
+    const places = getPlaces();
+    places.push({ key, name: name.slice(0,28), lat: pickedLat, lon: pickedLon, sea, applyBonus: false });
+    savePlaces(places);
+
+    reloadPlacesKeepSelection();
+
+    const newIdx = PLACES.findIndex(p => p.key === key);
+    currentIndex = (newIdx >= 0) ? newIdx : 0;
+    setLastSelectedKey(PLACES[currentIndex]?.key || '');
+
+    buildButtons();
+
+    placeNameEl.value = '';
+    savePointBtn.disabled = true;
+
+    closeMap();
+
+    setHeader();
+    await loadForecastForSelected();
+    await refreshRealtimeForAllButtons();
+  });
+
+  // ===== HELP modal =====
+  const helpBackdrop = document.getElementById('helpBackdrop');
+  const helpBtn = document.getElementById('helpBtn');
+  const closeHelpBtn = document.getElementById('closeHelpBtn');
+
+  function openHelp(){
+    helpBackdrop.style.display = 'flex';
+    helpBackdrop.setAttribute('aria-hidden', 'false');
+  }
+  function closeHelp(){
+    helpBackdrop.style.display = 'none';
+    helpBackdrop.setAttribute('aria-hidden', 'true');
+  }
+  helpBtn.addEventListener('click', openHelp);
+  closeHelpBtn.addEventListener('click', closeHelp);
+  helpBackdrop.addEventListener('click', (e) => { if(e.target === helpBackdrop) closeHelp(); });
+
+  // ===== INIT =====
+  ensureDefaultsSeeded();
+  reloadPlacesKeepSelection();
+
+  const lastKey = getLastSelectedKey();
+  const idx = PLACES.findIndex(p => p.key === lastKey);
+  if(idx >= 0) currentIndex = idx;
+  if(PLACES[currentIndex]) setLastSelectedKey(PLACES[currentIndex].key);
+
+  buildButtons();
+  setHeader();
+  setNowBarLoading();
+
+  loadForecastForSelected();
+  refreshRealtimeForAllButtons();
+
+  setInterval(refreshRealtimeForAllButtons, 10 * 60 * 1000);
+  setInterval(loadForecastForSelected, 30 * 60 * 1000);
+</script>
+</body>
+</html>
