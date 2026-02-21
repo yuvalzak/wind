@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#3498db" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Wind Forecast" />
+<title>Zak Wind + Waves Forecast</title>
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="icon-192.png" />
+<link rel="shortcut icon" href="icon-192.png" />
+
+<!-- CSS files -->
+<link rel="stylesheet" href="css/layout.5df9595a.css" />
+<link rel="stylesheet" href="css/buttons.60610e23.css" />
+<link rel="stylesheet" href="css/folders.e0b99b81.css" />
+<link rel="stylesheet" href="css/managebar.d3536755.css" />
+<link rel="stylesheet" href="css/charts.88dd5867.css" />
+<link rel="stylesheet" href="css/modals.ef63d649.css" />
+<link rel="stylesheet" href="css/help.ff5bc8c1.css" />
+
+<!-- External dependencies -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+
+<body>
+<div class="container">
+  <div class="header">
+    <h1 id="title"><img src="windgod_banner.png" class="title-wind-icon" alt=""> Wind + Waves Forecast</h1>
+    <p id="subtitle" style="display:none;"></p>
+  </div>
+
+  <div class="topbar">
+    <button type="button" class="toolbtn" id="openMapBtn" title="Pick location on map">📍</button>
+    <button type="button" class="toolbtn" id="settingsBtn" title="Settings">⚙️</button>
+    <div id="folders"></div>
+  </div>
+
+  <div class="managebar">
+    <!-- One big outer frame containing everything -->
+    <div class="data-frames-outer">
+
+      <!-- Selected spot frame (inside the big frame) -->
+      <div class="selected-frame">
+        <div class="selected-frame-label">📍 Selected Spot</div>
+        <div class="managecard" id="manageCard">
+          <div class="manage-left">
+            <div class="manage-title">
+              <span id="sel_title">Selected: —</span>
+              <button type="button" class="map-edit-btn" id="editLocationBtn" title="Edit spot location on map" style="display: none;">📍</button>
+            </div>
+            <div class="manage-sub" id="sel_sub">—</div>
+          </div>
+          <div class="manage-actions">
+            <div class="pill" id="now_status" style="font-size:0.82em; border-color:#3498db; color:#2980b9; background:#ebf5fb;">…</div>
+            <button type="button" class="actionbtn" id="calibrateSelBtn" onclick="openCalibration()">🎯 Calibrate</button>
+            <button type="button" class="actionbtn" id="camBtn" title="Live camera" style="padding: 0; width: 36px; height: 36px; font-size: 1.2em; flex-shrink: 0; border-radius: 8px; display:none;">📷</button>
+            <button type="button" class="actionbtn" id="dataBtn" title="Real-time data" style="padding: 0; width: 36px; height: 36px; font-size: 1.2em; flex-shrink: 0; border-radius: 8px; display:none;">📡</button>
+            <button type="button" class="actionbtn" id="camSetBtn" title="Set camera & data URLs" style="padding: 0; width: 36px; height: 36px; font-size: 1.05em; flex-shrink: 0; border-radius: 8px; opacity:0.6;">🔗</button>
+            <button type="button" class="actionbtn danger" id="deleteSelBtn" title="Delete this spot" style="padding: 0; width: 36px; height: 36px; font-size: 1.2em; flex-shrink: 0; border-radius: 8px;">🗑️</button>
+          </div>
+        </div>
+
+      </div>
+      <!-- Conditions Frame -->
+      <div class="data-frame conditions-frame">
+        <div class="frame-label">🌤️ Conditions</div>
+        <div class="frame-content">
+          <div class="pill" id="now_sun" title="Sunrise / Sunset">🌅 … / 🌇 …</div>
+          <div class="pill" id="now_visibility" title="Visibility">👁️ Vis: … <small>km</small></div>
+          <div class="pill" id="now_clouds" title="Cloud Coverage">☁️ Clouds: … <small>%</small></div>
+          <div class="pill" id="now_aqi" title="Air Quality Index">
+            <span class="aqiDot" id="now_aqiDot"></span>
+            AQI: … <small id="now_aqi_label"></small>
+          </div>
+          <div class="pill" id="now_lightning" title="Lightning Probability" style="display: none;">⚡ Lightning: … <small>%</small></div>
+        </div>
+      </div>
+      
+      <!-- Wind Data Frame -->
+      <div class="data-frame wind-frame">
+        <div class="frame-label"><img src="wind-icon.png" class="wind-frame-icon" alt="Wind"> Wind</div>
+        <div class="frame-content">
+          <div class="pill" id="now_temp">🌡️ Air: … <small>°C</small></div>
+          <div class="pill" id="now_gust"><span class="gustIcon" aria-hidden="true"></span> Gust: … <small>k</small></div>
+          <div class="pill" id="now_wind">Wind: … <small>k</small></div>
+          <div class="pill" id="now_dir" title="Wind Direction">
+            <span id="now_wind_arrow" class="dir-arrow">➤</span>
+            <span id="now_dir_text">…</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Wave Data Frame -->
+      <div class="data-frame wave-frame">
+        <div class="frame-label">🌊 Waves</div>
+        <div class="frame-content">
+          <div class="pill" id="now_water">🌡️ Water: … <small>°C</small></div>
+          <div class="pill" id="now_wave">
+            <span class="waveDot" id="now_waveDot" title="wave period color"></span>
+            Wave: … <small>m</small> / … <small>s</small>
+          </div>
+          <div class="pill" id="now_wave_dir" title="Wave Direction">
+            <span id="now_wave_arrow" class="dir-arrow wave-arrow-pill">➤</span>
+            <span id="now_wave_dir_text">…</span>
+          </div>
+          <div class="pill" id="now_wave_score" title="Wave Riding Score (1-10)">
+            <span style="margin-right: 4px;">🏄</span> Wave: … <small>/10</small>
+          </div>
+          <div class="pill" id="now_flat_score" title="Flat Water Score (1-10)">
+            <span style="margin-right: 4px;">🛟</span> Flat: … <small>/10</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="content" class="chart-container">
+    <div class="loading">Loading…</div>
+  </div>
+</div>
+
+<!-- MAP modal -->
+<div class="modal-backdrop" id="mapBackdrop" aria-hidden="true">
+  <div class="modal map-modal" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <div>
+        <div class="title" id="mapModalTitle">Pick a location</div>
+        <div class="hint" id="mapModalHint">Tap map · name it · save</div>
+      </div>
+      <button type="button" class="close" id="closeMapBtn">✖</button>
+    </div>
+
+    <div class="map-modal-body">
+
+      <!-- Search row -->
+      <div class="map-search-row">
+        <div class="map-search-wrap">
+          <input type="text" class="map-input" id="mapSearch" placeholder="Search location…" autocomplete="off" />
+          <div id="searchSuggestions" class="search-suggestions"></div>
+        </div>
+        <button type="button" class="map-btn" id="mapSearchBtn">🔍</button>
+        <button type="button" class="map-btn map-btn-green" id="useMyLocationBtn">📍</button>
+      </div>
+
+      <!-- Lat/lon row -->
+      <div class="map-latlon-row">
+        <input type="text" class="map-input" id="latLonInput" placeholder="Paste lat, lon  (e.g. 32.08 34.78)" />
+        <button type="button" class="map-btn" id="goToLatLonBtn">📌 Go</button>
+      </div>
+
+      <!-- Map fills remaining space -->
+      <div id="map"></div>
+
+      <!-- Bottom: coords + save row -->
+      <div class="map-save-area">
+        <div class="map-coords" id="pickedCoords">Tap the map to pick a location</div>
+        <div class="map-save-row">
+          <input class="map-input" id="placeName" placeholder="Spot name" maxlength="28" />
+          <select class="map-select" id="folderSelect" title="Folder"></select>
+          <input type="text" class="map-input" id="newFolderInput" placeholder="New folder…" />
+          <button type="button" class="map-save-btn" id="savePointBtn" disabled>💾 Save</button>
+          <button type="button" class="map-btn map-btn-close" id="closeMapBtn2">✖</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS modal -->
+<div class="modal-backdrop" id="settingsBackdrop" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" style="max-width: 800px;">
+    <div class="modal-header">
+      <div class="title">⚙️ Settings</div>
+      <button type="button" class="close" id="closeSettingsBtn">✖</button>
+    </div>
+    <!-- Tabs row: outside modal-body so it never scrolls away -->
+    <div class="settings-tabs-container" style="display: flex; gap: 8px; border-bottom: 2px solid #ecf0f1; padding: 0 14px; flex-shrink: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; background: white;">
+      <button type="button" class="settings-tab active" data-tab="help">Help</button>
+      <button type="button" class="settings-tab" data-tab="myday">⭐ My Day</button>
+      <button type="button" class="settings-tab" data-tab="bestspots">Best Spots</button>
+      <button type="button" class="settings-tab" data-tab="folders">🌊 Wave Calibration</button>
+      <button type="button" class="settings-tab" data-tab="history">History</button>
+      <button type="button" class="settings-tab" data-tab="data">Data</button>
+      <button type="button" class="settings-tab" data-tab="about">About</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- My Day Tab -->
+      <div class="settings-content" id="settings-myday" style="display: none;">
+        <h3 style="margin-top: 0; color: #2c3e50;">⭐ My Perfect Day</h3>
+        <p style="color: #6c7a89; margin-bottom: 20px; font-size: 0.95em;">Define your ideal conditions. Days and spots that match will be highlighted with ⭐ in the forecast.</p>
+
+        <div style="display: grid; gap: 14px;">
+
+          <!-- Wind -->
+          <div class="myday-rule-row">
+            <div class="myday-rule-label">💨 Wind speed</div>
+            <div class="myday-rule-inputs">
+              <select class="myday-op" id="md_wind_op"><option value="between">between</option><option value="gt">greater than</option><option value="lt">less than</option><option value="any">any</option></select>
+              <input type="number" class="myday-val" id="md_wind_min" placeholder="min" min="0" max="100" step="1">
+              <span class="myday-sep" id="md_wind_sep">and</span>
+              <input type="number" class="myday-val" id="md_wind_max" placeholder="max" min="0" max="100" step="1">
+              <span class="myday-unit">knots</span>
+            </div>
+          </div>
+
+          <!-- Gust -->
+          <div class="myday-rule-row">
+            <div class="myday-rule-label">💨 Gust</div>
+            <div class="myday-rule-inputs">
+              <select class="myday-op" id="md_gust_op"><option value="lt">less than</option><option value="between">between</option><option value="gt">greater than</option><option value="any">any</option></select>
+              <input type="number" class="myday-val" id="md_gust_min" placeholder="min" min="0" max="100" step="1">
+              <span class="myday-sep" id="md_gust_sep">and</span>
+              <input type="number" class="myday-val" id="md_gust_max" placeholder="max" min="0" max="100" step="1">
+              <span class="myday-unit">knots</span>
+            </div>
+          </div>
+
+          <!-- Wave Height -->
+          <div class="myday-rule-row">
+            <div class="myday-rule-label">🌊 Wave height</div>
+            <div class="myday-rule-inputs">
+              <select class="myday-op" id="md_waveH_op"><option value="lt">less than</option><option value="between">between</option><option value="gt">greater than</option><option value="any">any</option></select>
+              <input type="number" class="myday-val" id="md_waveH_min" placeholder="min" min="0" max="20" step="0.1">
+              <span class="myday-sep" id="md_waveH_sep">and</span>
+              <input type="number" class="myday-val" id="md_waveH_max" placeholder="max" min="0" max="20" step="0.1">
+              <span class="myday-unit">m</span>
+            </div>
+          </div>
+
+          <!-- Wave Period -->
+          <div class="myday-rule-row">
+            <div class="myday-rule-label">🌊 Wave period</div>
+            <div class="myday-rule-inputs">
+              <select class="myday-op" id="md_waveP_op"><option value="gt">greater than</option><option value="between">between</option><option value="lt">less than</option><option value="any">any</option></select>
+              <input type="number" class="myday-val" id="md_waveP_min" placeholder="min" min="0" max="30" step="0.5">
+              <span class="myday-sep" id="md_waveP_sep">and</span>
+              <input type="number" class="myday-val" id="md_waveP_max" placeholder="max" min="0" max="30" step="0.5">
+              <span class="myday-unit">s</span>
+            </div>
+          </div>
+
+
+          <!-- No Rain -->
+          <div class="myday-rule-row" style="background:#f0fff4; border-color:#a9dfbf;">
+            <div class="myday-rule-label">🌧️ Rain</div>
+            <div class="myday-rule-inputs" style="align-items:center; gap:10px;">
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.95em; font-weight:600; color:#1e8449;">
+                <input type="checkbox" id="md_no_rain" style="width:18px; height:18px; accent-color:#27ae60; cursor:pointer;">
+                No rain — must be dry
+              </label>
+              <span style="font-size:0.8em; color:#6c7a89; font-style:italic;">Excludes hours with precipitation &gt; 0.1 mm</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Min hours row -->
+        <div class="myday-rule-row" style="margin-top: 14px; background: #eef4ff; border-color: #c5d8f5;">
+          <div class="myday-rule-label" style="color: #2471a3;">⏱ Good if rules hold for at least</div>
+          <div class="myday-rule-inputs">
+            <input type="number" class="myday-val" id="md_min_hours" placeholder="all day" min="1" max="10" step="1" style="width:80px;">
+            <span class="myday-unit">hours (9am–6pm)</span>
+            <span style="font-size:0.82em; color:#6c7a89; font-style:italic;">Leave empty = all hours must match</span>
+          </div>
+        </div>
+
+        <div style="margin-top: 20px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+          <button type="button" id="saveMyDayBtn" style="padding: 10px 22px; background: #27ae60; color: white; border: none; border-radius: 10px; font-weight: 700; font-size: 0.95em; cursor: pointer;">💾 Save</button>
+          <button type="button" id="clearMyDayBtn" style="padding: 10px 22px; background: #e74c3c; color: white; border: none; border-radius: 10px; font-weight: 700; font-size: 0.95em; cursor: pointer;">🗑 Clear Rules</button>
+          <span id="myDayStatus" style="font-size: 0.9em; color: #27ae60; font-weight: 700; display:none;"></span>
+        </div>
+
+        <div style="margin-top: 16px; padding: 12px 14px; background: #fef9e7; border: 1px solid #f9ca24; border-radius: 10px; font-size: 0.88em; color: #7d6608;">
+          <strong>How it works:</strong> Set rules for any conditions you care about. Leave a rule on "any" to ignore it. Days where the forecast matches your rules get a ⭐ on the day header. Spots with a matching good day get ⭐ on their button.
+        </div>
+      </div>
+      <!-- Help Tab -->
+      <div class="settings-content active" id="settings-help">
+
+        <!-- App Intro -->
+        <div style="background: linear-gradient(135deg, #1a6fa8, #2980b9); border-radius: 12px; padding: 20px 24px; margin-bottom: 24px; color: white;">
+          <div style="font-size: 1.3em; font-weight: 900; margin-bottom: 4px;">🌊 Zak Wind & Wave Forecast</div>
+          <div style="font-size: 0.88em; opacity: 0.9; margin-bottom: 16px;">A personal wind forecasting tool built for kiters, windsurfers, and anyone who lives by the wind.</div>
+          <div style="display: flex; flex-direction: column; gap: 9px; font-size: 0.85em;">
+            <div><span style="font-size: 1.1em;">📍</span> <strong>Add any spot in the world</strong> — any beach, lake, or bay, with its own forecast, wave data, webcam and station link.</div>
+            <div><span style="font-size: 1.1em;">📁</span> <strong>Organize into folders</strong> — group by region, season, or trip. Switch between your local break and a travel destination in one tap.</div>
+            <div><span style="font-size: 1.1em;">⭐</span> <strong>My Perfect Day</strong> — set your ideal wind and wave conditions, and the app highlights the best upcoming sessions across all your spots at a glance.</div>
+            <div><span style="font-size: 1.1em;">🌍</span> <strong>Best Spots worldwide</strong> — explore 150+ top kite and windsurf destinations with best-month info and direct forecast links.</div>
+            <div><span style="font-size: 1.1em;">🎯</span> <strong>Calibrate individual spots</strong> — compensate for station blockage with direction-specific wind rules, conditioned on speed, gusts, or waves.</div>
+            <div><span style="font-size: 1.1em;">📂</span> <strong>Calibrate by folder</strong> — apply wave height corrections to an entire region at once.</div>
+            <div><span style="font-size: 1.1em;">💾</span> <strong>Export your spots</strong> — back up or share your full setup as a text file.</div>
+            <div><span style="font-size: 1.1em;">📱</span> <strong>Works on any device</strong> — runs in your browser, no login needed. Your data stays on your device.</div>
+          </div>
+        </div>
+
+        <!-- Install App Banner -->
+        <div id="installBanner" style="display: none; background: linear-gradient(135deg, #3498db, #2980b9); border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+          <div style="color: white;">
+            <div style="font-weight: 900; font-size: 1.05em; margin-bottom: 4px;">📲 Install as App</div>
+            <div style="font-size: 0.85em; opacity: 0.9;">Add to your home screen for quick access — works offline too.</div>
+          </div>
+          <button type="button" id="installBtn" style="background: white; color: #2980b9; border: none; border-radius: 8px; padding: 10px 18px; font-weight: 900; font-size: 0.95em; cursor: pointer; white-space: nowrap; flex-shrink: 0;">Install App</button>
+        </div>
+
+        <h3 style="margin-top: 0; color: #2c3e50;">Colors & Meanings</h3>
+        <div class="help-grid">
+          <div class="help-card">
+            <h3>Wind strength colors (gust-based)</h3>
+            <div class="row"><span class="swatch" style="background:#3498db"></span> &lt; 15 k</div>
+            <div class="row"><span class="swatch" style="background:#f39c12"></span> 15–20 k</div>
+            <div class="row"><span class="swatch" style="background:#e67e22"></span> 20–25 k</div>
+            <div class="row"><span class="swatch" style="background:#d35400"></span> 25–30 k</div>
+            <div class="row"><span class="swatch" style="background:#c0392b"></span> 30+ k</div>
+            <div class="small">Wind = solid • Gusts = dashed • Green line = measured wind</div>
+          </div>
+
+          <div class="help-card">
+            <h3>Waves</h3>
+            <div class="small">Bar height uses the same scale as wind (knots on left). <b>1 meter = 10 knots on chart</b>. Bar color = wave period (s).</div>
+            <div class="row"><span class="swatch" style="background:#c0392b"></span> 3–5 s = Chop</div>
+            <div class="row"><span class="swatch" style="background:#e67e22"></span> 5–7 s = Short</div>
+            <div class="row"><span class="swatch" style="background:#f39c12"></span> 7–9 s = Medium</div>
+            <div class="row"><span class="swatch" style="background:#7fb3d5"></span> 9–12 s = Long</div>
+            <div class="row"><span class="swatch" style="background:#3498db"></span> 12+ s = Very long</div>
+            <div class="small"><b>Example:</b> 1.5m wave appears at "15" on chart. Tooltip shows actual meters.</div>
+          </div>
+
+          <div class="help-card">
+            <h3>Sea Quality Scores (1-10)</h3>
+            <div class="small">Two different scores based on activity type:</div>
+            <div style="margin-top: 10px; font-weight: 700; color: #2c3e50;">Wave Riding Score</div>
+            <div class="small">For surfing, wing foiling. Formula: <b>(Height × Period) / 2.5</b></div>
+            <div class="small" style="margin-top: 4px;">High waves + long period = excellent. Short period = choppy.</div>
+            <div style="margin-top: 10px; font-weight: 700; color: #2c3e50;">Flat Water Score</div>
+            <div class="small">For SUP, kayaking, swimming. Formula: <b>10 / (1 + (Height/0.3)^1.8) × Period modifier</b></div>
+            <div class="small" style="margin-top: 4px;">Small waves + long period = smooth. Chop = bad.</div>
+            <div style="margin-top: 10px;">
+              <div class="row"><span class="swatch" style="background:#27ae60"></span> 9-10 = Epic</div>
+              <div class="row"><span class="swatch" style="background:#2ecc71"></span> 7-9 = Excellent</div>
+              <div class="row"><span class="swatch" style="background:#f39c12"></span> 5-7 = Good</div>
+              <div class="row"><span class="swatch" style="background:#e67e22"></span> 3-5 = Fair</div>
+              <div class="row"><span class="swatch" style="background:#c0392b"></span> 1-3 = Poor</div>
+            </div>
+            <div style="margin-top: 12px; padding: 10px; background: #ecf0f1; border-radius: 6px;">
+              <div style="font-weight: 700; margin-bottom: 6px; color: #2c3e50;">Quick Reference Examples:</div>
+              <table style="width: 100%; font-size: 0.85em; border-collapse: collapse;">
+                <tr style="border-bottom: 1px solid #bdc3c7;">
+                  <th style="text-align: left; padding: 4px 0;">Conditions</th>
+                  <th style="text-align: center; padding: 4px 8px;">Wave Score</th>
+                  <th style="text-align: center; padding: 4px 8px;">Flat Score</th>
+                </tr>
+                <tr><td style="padding: 4px 0;">3m @ 15s</td><td style="text-align: center; color: #27ae60; font-weight: 700;">10.0</td><td style="text-align: center; color: #c0392b;">1.4</td></tr>
+                <tr><td style="padding: 4px 0;">2m @ 12s</td><td style="text-align: center; color: #27ae60; font-weight: 700;">9.6</td><td style="text-align: center; color: #e67e22;">3.3</td></tr>
+                <tr><td style="padding: 4px 0;">1m @ 8s</td><td style="text-align: center; color: #e67e22;">3.2</td><td style="text-align: center; color: #f39c12;">5.3</td></tr>
+                <tr><td style="padding: 4px 0;">0.5m @ 10s</td><td style="text-align: center; color: #c0392b;">2.0</td><td style="text-align: center; color: #2ecc71;">8.6</td></tr>
+                <tr><td style="padding: 4px 0;">0.3m @ 12s</td><td style="text-align: center; color: #c0392b;">1.4</td><td style="text-align: center; color: #27ae60;">10.0</td></tr>
+              </table>
+            </div>
+          </div>
+
+          <div class="help-card">
+            <h3>Spot Indicators</h3>
+            <div class="row"><span style="font-size: 1.2em;">⭐</span> Star = Wind calibration active</div>
+            <div class="row"><span style="font-size: 1.2em;">🌊⚙️</span> Badge = Folder wave calibration active</div>
+            <div class="small" style="margin-top: 6px;">See Calibration section below for details on all calibration types.</div>
+          </div>
+
+          <div class="help-card">
+            <h3>Air Quality Index (AQI)</h3>
+            <div class="small">Based on European Air Quality Index (EAQI). Shows PM2.5, PM10, NO₂, O₃, and SO₂ levels.</div>
+            <div class="row"><span class="swatch" style="background:#50f0e6"></span> Good (0-20)</div>
+            <div class="row"><span class="swatch" style="background:#50ccaa"></span> Fair (21-40)</div>
+            <div class="row"><span class="swatch" style="background:#f0e641"></span> Moderate (41-60)</div>
+            <div class="row"><span class="swatch" style="background:#ff5050"></span> Poor (61-80)</div>
+            <div class="row"><span class="swatch" style="background:#960032"></span> Very Poor (81-100)</div>
+            <div class="row"><span class="swatch" style="background:#7d2181"></span> Extremely Poor (100+)</div>
+          </div>
+        </div>
+
+        <!-- Calibration Guide -->
+        <h3 style="color: #2c3e50; margin-top: 32px; padding-top: 24px; border-top: 2px solid #ecf0f1;">🎯 Calibration Guide</h3>
+        <p style="color: #6c7a89; margin-bottom: 20px;">The app has three independent calibration systems. They work together in a priority chain — spot-level always wins over folder-level.</p>
+
+        <div class="help-grid">
+
+          <!-- Wind Calibration -->
+          <div class="help-card" style="border-left: 4px solid #3498db;">
+            <h3 style="color: #2980b9;">💨 Spot Wind Calibration</h3>
+            <div class="small" style="margin-bottom: 10px;">Fine-tune the wind forecast for a specific spot based on its real-world behaviour. Opened with the <b>🎯 Calibrate</b> button on any selected spot.</div>
+
+            <div style="font-weight: 700; color: #2c3e50; margin-bottom: 4px;">How to add a wind rule:</div>
+            <ol style="margin: 0 0 10px 0; padding-left: 18px; font-size: 0.88em; color: #34495e; line-height: 1.8;">
+              <li>Click sectors on the compass (e.g. N, NE, E)</li>
+              <li>Choose <b>+ Add</b> or <b>− Subtract</b></li>
+              <li>Choose <b>Knots</b> or <b>Percent %</b></li>
+              <li>Pick a value from the dropdown</li>
+              <li>Optionally add a wave condition (see below)</li>
+              <li>Click <b>➕ Add Rule</b></li>
+            </ol>
+
+            <div style="font-weight: 700; color: #2c3e50; margin-bottom: 4px;">Wave condition on wind rules:</div>
+            <div class="small" style="margin-bottom: 10px;">Each wind rule can be made conditional on wave height. Check <b>"Only when waves are"</b>, choose less/greater than, and set a threshold in meters. The rule will only apply when waves meet that condition.<br><br><b>Example:</b> "Add 10 kts to East wind only when waves &lt; 1.5m" — useful for spots sheltered from swell but exposed to thermal wind.</div>
+
+            <div style="background: #ebf5fb; border-radius: 6px; padding: 10px; font-size: 0.85em; color: #2980b9;">
+              <b>Indicator:</b> ⭐ star appears on the spot button when it has wind rules. Rules are shown in the list below the compass and highlight on the compass when you hover them.
+            </div>
+          </div>
+
+          <!-- Spot Wave Calibration -->
+          <div class="help-card" style="border-left: 4px solid #16a085;">
+            <h3 style="color: #138d75;">🌊 Spot Wave Calibration</h3>
+            <div class="small" style="margin-bottom: 10px;">Adjust the model's wave heights for a specific spot. Found at the <b>bottom of the 🎯 Calibrate modal</b> under "🌊 Wave Height Calibration".</div>
+
+            <div style="font-weight: 700; color: #2c3e50; margin-bottom: 4px;">Two independent rules:</div>
+            <div style="display: grid; gap: 8px; margin-bottom: 10px;">
+              <div style="background: #e8f8f5; border-radius: 6px; padding: 10px; font-size: 0.85em;">
+                <b style="color: #138d75;">Small Waves</b> — waves up to the threshold<br>
+                Set threshold (e.g. 1m), choose % or cm, set the adjustment value.<br>
+                <span style="color: #6c7a89;">Example: Up to 1m → <b>−50%</b> (0.8m becomes 0.4m)</span>
+              </div>
+              <div style="background: #fef9e7; border-radius: 6px; padding: 10px; font-size: 0.85em;">
+                <b style="color: #d4ac0d;">Large Waves</b> — waves over the threshold<br>
+                Same structure, applied when waves exceed threshold.<br>
+                <span style="color: #6c7a89;">Example: Over 1m → <b>−50cm</b> (2m becomes 1.5m)</span>
+              </div>
+            </div>
+
+            <div style="font-weight: 700; color: #2c3e50; margin-bottom: 4px;">Priority:</div>
+            <div class="small">Spot wave calibration <b>overrides</b> folder wave calibration for that spot. If a spot has its own wave rules, folder rules are ignored for it.</div>
+
+            <div style="background: #e8f8f5; border-radius: 6px; padding: 10px; font-size: 0.85em; color: #138d75; margin-top: 10px;">
+              <b>Tip:</b> Click <b>💾 Save Wave Calibration</b> — a green confirmation appears. The <b>Clear</b> button removes it. Changes apply on the next data refresh.
+            </div>
+          </div>
+
+          <!-- Folder Wave Calibration -->
+          <div class="help-card" style="border-left: 4px solid #9b59b6;">
+            <h3 style="color: #8e44ad;">📁 Folder Wave Calibration</h3>
+            <div class="small" style="margin-bottom: 10px;">Apply a wave height adjustment to <b>all spots in a folder at once</b>. Useful when an entire region has systematically over- or under-estimated waves. Found in <b>Settings → 🌊 Wave Calibration</b>.</div>
+
+            <div style="font-weight: 700; color: #2c3e50; margin-bottom: 4px;">How to set it:</div>
+            <ol style="margin: 0 0 10px 0; padding-left: 18px; font-size: 0.88em; color: #34495e; line-height: 1.8;">
+              <li>Open Settings → 🌊 Wave Calibration</li>
+              <li>Find your folder's wave calibration card</li>
+              <li>Set the <b>Small Waves</b> threshold and adjustment</li>
+              <li>Set the <b>Large Waves</b> threshold and adjustment</li>
+              <li>Click <b>Save Calibration</b></li>
+            </ol>
+
+            <div style="font-weight: 700; color: #2c3e50; margin-bottom: 4px;">Shortcut:</div>
+            <div class="small" style="margin-bottom: 10px;">Click the <b>🌊⚙️</b> button on any folder header to jump directly to that folder's wave calibration card in settings.</div>
+
+            <div style="background: #f5eef8; border-radius: 6px; padding: 10px; font-size: 0.85em; color: #8e44ad;">
+              <b>Indicator:</b> When a folder has active wave calibration, a teal <b>🌊⚙️</b> badge appears in the folder header next to the spot count. The calibration card in settings also shows a green border and a summary badge, e.g. <b>≤1m: −50% / &gt;1m: −0.5m</b>.
+            </div>
+          </div>
+
+          <!-- Priority chain -->
+          <div class="help-card" style="border-left: 4px solid #e67e22;">
+            <h3 style="color: #d35400;">⚡ Calibration Priority Chain</h3>
+            <div class="small" style="margin-bottom: 12px;">When multiple calibrations could apply, the app uses this priority order:</div>
+            <div style="display: grid; gap: 6px;">
+              <div style="display: flex; align-items: center; gap: 10px; background: #fdebd0; border-radius: 8px; padding: 10px;">
+                <div style="font-size: 1.4em;">1️⃣</div>
+                <div>
+                  <div style="font-weight: 700; color: #d35400;">Spot Wind Rules</div>
+                  <div style="font-size: 0.82em; color: #6c7a89;">Applied to wind speed per compass direction. Optional wave condition filter.</div>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px; background: #e8f8f5; border-radius: 8px; padding: 10px;">
+                <div style="font-size: 1.4em;">2️⃣</div>
+                <div>
+                  <div style="font-weight: 700; color: #138d75;">Spot Wave Rules</div>
+                  <div style="font-size: 0.82em; color: #6c7a89;">Adjusts wave height for this spot. Blocks folder wave rules if present.</div>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px; background: #f5eef8; border-radius: 8px; padding: 10px;">
+                <div style="font-size: 1.4em;">3️⃣</div>
+                <div>
+                  <div style="font-weight: 700; color: #8e44ad;">Folder Wave Rules</div>
+                  <div style="font-size: 0.82em; color: #6c7a89;">Applies to all spots in the folder that have no spot-level wave rules.</div>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px; background: #f8f9fa; border-radius: 8px; padding: 10px;">
+                <div style="font-size: 1.4em;">4️⃣</div>
+                <div>
+                  <div style="font-weight: 700; color: #6c7a89;">Raw Model Data</div>
+                  <div style="font-size: 0.82em; color: #6c7a89;">No adjustments — forecast shown exactly as received from Open-Meteo.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Best Spots Tab -->
+      <div class="settings-content" id="settings-bestspots" style="display: none;">
+        <h3 style="margin-top: 0; color: #2c3e50;">🌍 Best Wind & Kite Spots in the World</h3>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+          <p style="margin:0; color:#6c7a89; font-size:0.9em;">Check spots then press Add:</p>
+          <button type="button" class="save" id="addSelectedSpotsBtn" style="padding:8px 20px;">➕ Add Selected Spots</button>
+        </div>
+        <div id="addSpotsStatus" style="display:none; margin-bottom:10px; padding:8px 12px; border-radius:8px; font-weight:700; font-size:0.9em;"></div>
+        <div id="bestSpotsTabBar" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; padding-bottom:10px; border-bottom:2px solid #ecf0f1;">
+          <!-- Country tabs rendered by JS -->
+        </div>
+        <div id="bestSpotsList" style="max-height: 48vh; overflow-y: auto; overflow-x: hidden;">
+          <!-- Spots will be added here by JS -->
+        </div>
+      </div>
+
+      <!-- Folders Tab -->
+      <div class="settings-content" id="settings-folders" style="display: none;">
+        <h3 style="margin-top: 0; color: #2c3e50;">🌊 Wave Calibration by Folder</h3>
+        
+        <!-- Wave Calibration Section -->
+        <p style="margin-bottom: 16px; color: #6c7a89;">Apply wave height adjustments to all spots in a folder. Spots with individual calibration rules will use their own rules instead.</p>
+        <div id="folderWaveCalibrationList" style="display: grid; gap: 16px;">
+          <!-- Folder wave calibration will be added here by JS -->
+        </div>
+      </div>
+
+
+
+      <!-- History Tab -->
+      <div class="settings-content" id="settings-history" style="display: none;">
+        <h3 style="margin-top: 0; color: #2c3e50;">🗂️ Folder History</h3>
+        <p style="color: #6c7a89; margin-bottom: 20px;">Folders you've removed are saved here. Restore an entire folder or pick individual spots to bring back.</p>
+        <div id="folderHistoryList" style="display: grid; gap: 16px;">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+
+      <!-- Data Tab -->
+      <div class="settings-content" id="settings-data" style="display: none;">
+        <h3 style="margin-top: 0; color: #2c3e50;">💾 Export / Import Data</h3>
+
+        <!-- Export -->
+        <div style="background: #f8f9fa; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+          <h4 style="margin: 0 0 8px; color: #2c3e50;">📤 Export</h4>
+          <p style="color: #6c7a89; margin: 0 0 16px; font-size: 0.95em;">Download all your spots and calibration settings as a JSON file. Use this as a backup or to share your setup.</p>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button type="button" id="exportDataBtn" style="padding: 10px 22px; background: #27ae60; color: white; border: none; border-radius: 10px; font-weight: 700; font-size: 0.95em; cursor: pointer;">⬇️ Download JSON</button>
+            <button type="button" id="shareDataBtn" style="padding: 10px 22px; background: #25D366; color: white; border: none; border-radius: 10px; font-weight: 700; font-size: 0.95em; cursor: pointer;">📤 Share via WhatsApp</button>
+          </div>
+        </div>
+
+        <!-- Cloud Sync — hidden until ready -->
+        <div style="display:none; background: #eaf4fb; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid #aed6f1;">
+          <h4 style="margin: 0 0 6px; color: #1a6fa8;">☁️ Cloud Sync</h4>
+          <p style="color: #5d6d7e; margin: 0 0 16px; font-size: 0.9em;">Save your spots to the cloud with a 5-letter code. Use the code to restore your data on any device, or if local storage is lost.</p>
+
+          <!-- Save to cloud -->
+          <div style="margin-bottom: 14px;">
+            <div style="font-weight: 700; color: #2c3e50; margin-bottom: 8px; font-size: 0.9em;">📤 Save to Cloud</div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+              <button type="button" id="cloudSaveBtn" style="padding: 10px 20px; background: #2980b9; color: white; border: none; border-radius: 10px; font-weight: 700; font-size: 0.95em; cursor: pointer;">☁️ Generate Code & Save</button>
+              <div id="cloudSaveCodeBox" style="display:none; background: white; border: 2px solid #2980b9; border-radius: 10px; padding: 8px 16px; text-align: center;">
+                <div style="font-size: 0.75em; color: #6c7a89; margin-bottom: 2px;">Your sync code</div>
+                <div id="cloudSaveCode" style="font-size: 1.8em; font-weight: 900; letter-spacing: 6px; color: #1a6fa8; font-family: monospace;"></div>
+                <div style="font-size: 0.72em; color: #6c7a89; margin-top: 2px;">Write this down — you'll need it to restore</div>
+              </div>
+            </div>
+            <div id="cloudSaveStatus" style="display:none; margin-top: 10px; padding: 10px 14px; border-radius: 8px; font-weight: 600; font-size: 0.88em;"></div>
+          </div>
+
+          <!-- Re-sync -->
+          <div style="margin-bottom: 14px; padding-top: 14px; border-top: 1px solid #aed6f1;">
+            <div style="font-weight: 700; color: #2c3e50; margin-bottom: 8px; font-size: 0.9em;">🔄 Re-sync (update existing code)</div>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <input type="text" id="cloudResyncCode" maxlength="5" placeholder="XXXXX" style="width: 90px; padding: 9px 12px; border: 2px solid #aed6f1; border-radius: 8px; font-size: 1.1em; font-weight: 900; letter-spacing: 4px; text-transform: uppercase; font-family: monospace; text-align: center;"/>
+              <button type="button" id="cloudResyncBtn" style="padding: 10px 18px; background: #1a6fa8; color: white; border: none; border-radius: 10px; font-weight: 700; font-size: 0.9em; cursor: pointer;">🔄 Update Cloud</button>
+            </div>
+            <div id="cloudResyncStatus" style="display:none; margin-top: 10px; padding: 10px 14px; border-radius: 8px; font-weight: 600; font-size: 0.88em;"></div>
+          </div>
+
+          <!-- Load from cloud -->
+          <div style="padding-top: 14px; border-top: 1px solid #aed6f1;">
+            <div style="font-weight: 700; color: #2c3e50; margin-bottom: 8px; font-size: 0.9em;">📥 Load from Cloud</div>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <input type="text" id="cloudLoadCode" maxlength="5" placeholder="XXXXX" style="width: 90px; padding: 9px 12px; border: 2px solid #aed6f1; border-radius: 8px; font-size: 1.1em; font-weight: 900; letter-spacing: 4px; text-transform: uppercase; font-family: monospace; text-align: center;"/>
+              <button type="button" id="cloudLoadBtn" style="padding: 10px 18px; background: #27ae60; color: white; border: none; border-radius: 10px; font-weight: 700; font-size: 0.9em; cursor: pointer;">📥 Load & Restore</button>
+            </div>
+            <div id="cloudLoadStatus" style="display:none; margin-top: 10px; padding: 10px 14px; border-radius: 8px; font-weight: 600; font-size: 0.88em;"></div>
+          </div>
+        </div>
+
+        <!-- Import -->
+        <div style="background: #f8f9fa; border-radius: 12px; padding: 20px;">
+          <h4 style="margin: 0 0 8px; color: #2c3e50;">📥 Import</h4>
+          <p style="color: #6c7a89; margin: 0 0 6px; font-size: 0.95em;">Load spots from a JSON file. Choose how to handle existing spots:</p>
+          <div style="display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;">
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 600; font-size: 0.9em;">
+              <input type="radio" name="importMode" value="merge" checked> Merge <span style="color:#6c7a89; font-weight:400;">(add new, keep existing)</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 600; font-size: 0.9em;">
+              <input type="radio" name="importMode" value="replace"> Replace <span style="color:#6c7a89; font-weight:400;">(overwrite everything)</span>
+            </label>
+          </div>
+          <label style="display: inline-block; padding: 10px 22px; background: #3498db; color: white; border-radius: 10px; font-weight: 700; font-size: 0.95em; cursor: pointer;">
+            📂 Choose File
+            <input type="file" id="importFileInput" accept=".json" style="display:none;">
+          </label>
+          <div id="importStatus" style="margin-top: 14px; display: none; padding: 12px 14px; border-radius: 8px; font-weight: 600; font-size: 0.9em;"></div>
+        </div>
+
+      </div>
+
+      <!-- About Tab -->
+      <div class="settings-content" id="settings-about" style="display: none;">
+        <h3 style="margin-top: 0; color: #2c3e50;">📄 About & Disclaimer</h3>
+        
+        <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+          <h4 style="margin-top: 0; color: #856404;">⚠️ Important Disclaimer</h4>
+          <p style="color: #856404; margin: 0 0 10px 0; line-height: 1.6;">
+            This application provides weather forecast data for informational purposes only. We are <strong>not responsible</strong> for the accuracy, completeness, or reliability of the data presented. Weather conditions can change rapidly and forecasts may be incorrect. Always check multiple sources and use your own judgment before making decisions based on this data. Do not rely solely on this information for activities where safety is a concern.
+          </p>
+          <p style="color: #856404; margin: 0; line-height: 1.6; font-size: 0.95em; background: rgba(0,0,0,0.05); padding: 8px 10px; border-radius: 6px;">
+            <strong>⚠️ Model Data Only:</strong> All wind, gust and wave values are <strong>numerical weather model outputs</strong> — not real measurements. There are no physical sensors or stations at your spots. The model computes values from atmospheric equations on a grid, typically 1–11 km resolution. Actual conditions at your exact location may differ significantly, especially near coastlines, hills, or sheltered bays. Calibration rules can help tune the model to your local experience.
+          </p>
+        </div>
+
+        <div style="background: #e3f2fd; border-left: 4px solid #2196f3; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+          <h4 style="margin-top: 0; color: #1565c0;">ℹ️ Data Sources</h4>
+          <p style="color: #1565c0; margin: 0; line-height: 1.6;">
+            Wind and weather data provided by <strong>Open-Meteo.com</strong> — model: <strong>ICON Global</strong><br>
+            Wave data provided by <strong>Open-Meteo Marine API</strong><br>
+            Maps provided by <strong>Esri & OpenStreetMap</strong>
+          </p>
+        </div>
+
+        <div style="padding: 15px; background: #1a1a2e; border-radius: 8px; border-left: 4px solid #e74c3c;">
+          <h4 style="margin-top: 0; color: #e74c3c;">© Intellectual Property & Copyright</h4>
+          <p style="color: #bdc3c7; margin: 0 0 10px 0; line-height: 1.7; font-size: 0.9em;">
+            This application, including its source code, design, user interface, calibration system, scoring algorithms, visual layout, and all related concepts, are the exclusive intellectual property of <strong style="color:#f0f6fc;">Yuval Zak</strong> and are protected under applicable copyright law.
+          </p>
+          <p style="color: #bdc3c7; margin: 0 0 10px 0; line-height: 1.7; font-size: 0.9em;">
+            <strong style="color: #e74c3c;">You may not:</strong> copy, reproduce, distribute, modify, reverse-engineer, create derivative works from, sell, or otherwise exploit any part of this application — including its code, design patterns, UX concepts, calibration logic, or scoring systems — without explicit written permission from <strong style="color:#f0f6fc;">Yuval Zak</strong>.
+          </p>
+          <p style="color: #bdc3c7; margin: 0; line-height: 1.7; font-size: 0.9em;">
+            © 2026 Yuval Zak. All rights reserved. Unauthorized use may result in legal action. &nbsp;·&nbsp;
+            <a href="terms.html" target="_blank" style="color: #3498db;">Terms of Use</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CALIBRATION modal -->
+<div class="modal-backdrop" id="calibrateBackdrop" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" style="max-width: 600px;">
+    <div class="modal-header">
+      <div class="title">Calibrate: <span id="cal_spot_name">—</span></div>
+      <button type="button" class="close" id="closeCalibrateBtn">✖</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Help Banner -->
+      <div style="background: #eaf4fb; border-left: 4px solid #2980b9; border-radius: 6px; padding: 11px 14px; margin-bottom: 16px; font-size: 0.84em; color: #2c3e50; line-height: 1.5;">
+        <div style="font-weight: 800; margin-bottom: 5px; color: #1a6fa8;">💡 What is this for?</div>
+        <div>Sometimes the wind station is <strong>blocked from a certain direction</strong> — a building, hill, or terrain obstacle — so the model's data doesn't reflect the real wind at the spot. Add rules here to compensate:</div>
+        <ol style="margin: 7px 0 7px 18px; padding: 0; display: flex; flex-direction: column; gap: 3px;">
+          <li><strong>Click a direction</strong> on the compass to target it (or leave unset for all directions)</li>
+          <li>Choose <strong>Add</strong> or <strong>Subtract</strong> and set a value in knots or %</li>
+          <li>Optionally restrict the rule by <strong>wind speed / gust / wave</strong> conditions</li>
+          <li>Press <strong>➕ Add Rule</strong> — multiple rules can stack</li>
+        </ol>
+        <div style="color: #5d6d7e;">Example: "Add 30% to N winds" — if the station is sheltered from the north but the beach isn't.</div>
+      </div>
+
+      <div style="display: flex; gap: 20px;">
+        <!-- Compass -->
+        <div style="flex-shrink: 0;">
+          <div id="calibration_compass" style="width: 280px; height: 280px; position: relative;">
+            <canvas id="compassCanvas" width="280" height="280"></canvas>
+          </div>
+        </div>
+        
+        <!-- Controls -->
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 12px;">
+          <div style="font-weight: 900; color: #2c3e50; margin-bottom: 4px;">Add Wind Adjustment:</div>
+          
+          <!-- Add/Subtract Toggle -->
+          <div>
+            <label style="font-size: 0.9em; font-weight: 700; color: #6c7a89; margin-bottom: 4px; display: block;">Operation:</label>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" class="toggle-btn active" id="cal_add" onclick="setCalOperation('add')" style="flex: 1; padding: 8px; border: 2px solid #27ae60; background: #27ae60; color: white; border-radius: 6px; font-weight: 900; cursor: pointer;">+ Add</button>
+              <button type="button" class="toggle-btn" id="cal_subtract" onclick="setCalOperation('subtract')" style="flex: 1; padding: 8px; border: 2px solid #e74c3c; background: white; color: #e74c3c; border-radius: 6px; font-weight: 900; cursor: pointer;">− Subtract</button>
+            </div>
+          </div>
+          
+          <!-- Type Toggle -->
+          <div>
+            <label style="font-size: 0.9em; font-weight: 700; color: #6c7a89; margin-bottom: 4px; display: block;">Adjustment Type:</label>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" class="toggle-btn active" id="cal_knots" onclick="setCalType('knots')" style="flex: 1; padding: 8px; border: 2px solid #3498db; background: #3498db; color: white; border-radius: 6px; font-weight: 900; cursor: pointer;">Knots</button>
+              <button type="button" class="toggle-btn" id="cal_percent" onclick="setCalType('percent')" style="flex: 1; padding: 8px; border: 2px solid #9b59b6; background: white; color: #9b59b6; border-radius: 6px; font-weight: 900; cursor: pointer;">Percent %</button>
+            </div>
+          </div>
+          
+          <!-- Value Selector -->
+          <div>
+            <label style="font-size: 0.9em; font-weight: 700; color: #6c7a89; margin-bottom: 4px; display: block;">Value:</label>
+            <select id="cal_value" style="width: 100%; padding: 8px; border: 2px solid #bdc3c7; border-radius: 6px; font-size: 1em; font-weight: 700;">
+              <!-- Will be populated by JS -->
+            </select>
+          </div>
+          
+          <!-- Conditions (Optional) -->
+          <div style="background: #f0f4fa; padding: 10px; border-radius: 6px; border: 1px solid #aab8d0; display: flex; flex-direction: column; gap: 8px;">
+            <div style="font-size: 0.9em; font-weight: 700; color: #34495e;">⚙️ Conditions (Optional):</div>
+
+            <!-- Wind Speed Condition -->
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <label style="display: flex; align-items: center; gap: 4px; color: #6c7a89; min-width: 120px;">
+                <input type="checkbox" id="cal_wind_enabled" style="cursor: pointer;"/>
+                <span style="font-size: 0.85em;">💨 Wind speed</span>
+              </label>
+              <select id="cal_wind_condition" style="padding: 6px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 0.9em;" disabled>
+                <option value="less">less than</option>
+                <option value="greater">greater than</option>
+              </select>
+              <input type="number" id="cal_wind_threshold" step="1" min="0" max="100" value="15" style="width: 60px; padding: 6px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 0.9em;" disabled/>
+              <span style="color: #6c7a89; font-size: 0.85em;">kts</span>
+            </div>
+
+            <!-- Gust Condition -->
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <label style="display: flex; align-items: center; gap: 4px; color: #6c7a89; min-width: 120px;">
+                <input type="checkbox" id="cal_gust_enabled" style="cursor: pointer;"/>
+                <span style="font-size: 0.85em;">💨 Gust</span>
+              </label>
+              <select id="cal_gust_condition" style="padding: 6px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 0.9em;" disabled>
+                <option value="less">less than</option>
+                <option value="greater">greater than</option>
+              </select>
+              <input type="number" id="cal_gust_threshold" step="1" min="0" max="100" value="25" style="width: 60px; padding: 6px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 0.9em;" disabled/>
+              <span style="color: #6c7a89; font-size: 0.85em;">kts</span>
+            </div>
+
+            <!-- Wave Condition -->
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <label style="display: flex; align-items: center; gap: 4px; color: #6c7a89; min-width: 120px;">
+                <input type="checkbox" id="cal_wave_enabled" style="cursor: pointer;"/>
+                <span style="font-size: 0.85em;">🌊 Wave height</span>
+              </label>
+              <select id="cal_wave_condition" style="padding: 6px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 0.9em;" disabled>
+                <option value="less">less than</option>
+                <option value="greater">greater than</option>
+              </select>
+              <input type="number" id="cal_wave_threshold" step="0.1" min="0" max="10" value="1.5" style="width: 60px; padding: 6px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 0.9em;" disabled/>
+              <span style="color: #6c7a89; font-size: 0.85em;">m</span>
+            </div>
+
+            <div style="font-size: 0.75em; color: #6c7a89; margin-top: 2px;">
+              Example: "Add 8 kts to East when wind &lt; 15 kts &amp; waves &lt; 1.5m"
+            </div>
+          </div>
+          
+          <!-- Add Button -->
+          <button type="button" class="save" id="addCalibrationRule" style="margin-top: 8px; padding: 12px; font-size: 1em;">➕ Add Rule</button>
+        </div>
+      </div>
+      
+      <!-- Rules List -->
+      <div id="calibration_rules" style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #ecf0f1;">
+        <!-- Rules will be added here -->
+      </div>
+      
+      <!-- Wave Height Calibration Section -->
+      <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #ecf0f1;">
+        <div style="font-weight: 900; color: #16a085; margin-bottom: 12px; font-size: 1em;">🌊 Wave Height Calibration</div>
+        <p style="font-size: 0.82em; color: #6c7a89; margin: 0 0 12px 0;">Adjust the model's wave height for this spot. Applied on top of any folder calibration.</p>
+        
+        <!-- Small waves row -->
+        <div style="background: #e8f8f5; border-radius: 8px; padding: 12px; margin-bottom: 8px;">
+          <div style="font-weight: 700; color: #138d75; margin-bottom: 8px; font-size: 0.9em;">Small Waves — up to threshold</div>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <span style="font-size: 0.85em; color: #6c7a89;">Up to</span>
+            <input type="number" id="spot_wave_small_threshold" value="1" step="0.1" min="0" max="10" style="width: 60px; padding: 6px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 0.9em;"/>
+            <span style="font-size: 0.85em; color: #6c7a89;">m → adjust by</span>
+            <select id="spot_wave_small_op" style="padding: 6px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 0.9em;">
+              <option value="percent">%</option>
+              <option value="meters">cm</option>
+            </select>
+            <input type="number" id="spot_wave_small_val" value="-50" step="1" style="width: 70px; padding: 6px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 0.9em;"/>
+            <span id="spot_wave_small_unit" style="font-size: 0.85em; color: #6c7a89;">%</span>
+          </div>
+          <div style="margin-top: 6px; font-size: 0.75em; color: #6c7a89;">e.g. -50% on 0.8m → 0.4m</div>
+        </div>
+        
+        <!-- Large waves row -->
+        <div style="background: #fef9e7; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+          <div style="font-weight: 700; color: #d4ac0d; margin-bottom: 8px; font-size: 0.9em;">Large Waves — over threshold</div>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <span style="font-size: 0.85em; color: #6c7a89;">Over</span>
+            <input type="number" id="spot_wave_large_threshold" value="1" step="0.1" min="0" max="10" style="width: 60px; padding: 6px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 0.9em;"/>
+            <span style="font-size: 0.85em; color: #6c7a89;">m → adjust by</span>
+            <select id="spot_wave_large_op" style="padding: 6px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 0.9em;">
+              <option value="percent">%</option>
+              <option value="meters" selected>cm</option>
+            </select>
+            <input type="number" id="spot_wave_large_val" value="-50" step="1" style="width: 70px; padding: 6px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 0.9em;"/>
+            <span id="spot_wave_large_unit" style="font-size: 0.85em; color: #6c7a89;">cm</span>
+          </div>
+          <div style="margin-top: 6px; font-size: 0.75em; color: #6c7a89;">e.g. -50cm on 2m → 1.5m</div>
+        </div>
+        
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="save" id="saveSpotWaveCal" style="flex: 1; padding: 10px;">💾 Save Wave Calibration</button>
+          <button type="button" class="actionbtn" id="clearSpotWaveCal" style="padding: 10px; background: #e74c3c; color: white; border-color: #e74c3c; display: none;">Clear</button>
+        </div>
+        <div id="spotWaveCalStatus" style="margin-top: 8px; font-size: 0.82em; color: #27ae60; display: none; font-weight: 700;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- External JavaScript libraries -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+
+
+<!-- INSTALL INSTRUCTIONS modal -->
+<div class="modal-backdrop" id="installBackdrop" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" style="max-width: 500px;">
+    <div class="modal-header">
+      <div class="title">📲 Install App</div>
+      <button type="button" class="close" id="closeInstallBtn">✖</button>
+    </div>
+    <div class="modal-body">
+      <h3 style="margin-top: 0; color: #2c3e50;">Add to Home Screen</h3>
+      <p style="color: #6c7a89; line-height: 1.6; margin-bottom: 20px;">
+        Install this app on your phone for quick access! It will work like a native app.
+      </p>
+
+      <!-- iOS Instructions -->
+      <div id="install-ios" style="display: none;">
+        <div style="background: #e3f2fd; border-left: 4px solid #2196f3; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+          <h4 style="margin-top: 0; color: #1565c0;">📱 iPhone/iPad Instructions:</h4>
+          <ol style="color: #1565c0; line-height: 1.8; margin: 0; padding-left: 20px;">
+            <li>Tap the <strong>Share</strong> button <span style="font-size: 1.2em;">⎋</span> (bottom center of Safari)</li>
+            <li>Scroll down and tap <strong>"Add to Home Screen"</strong> <span style="font-size: 1.2em;">➕</span></li>
+            <li>Tap <strong>"Add"</strong> in the top right</li>
+            <li>The app icon will appear on your home screen!</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- Android Chrome Instructions -->
+      <div id="install-android" style="display: none;">
+        <div style="background: #e8f5e9; border-left: 4px solid #4caf50; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+          <h4 style="margin-top: 0; color: #2e7d32;">🤖 Android Instructions:</h4>
+          <ol style="color: #2e7d32; line-height: 1.8; margin: 0; padding-left: 20px;">
+            <li>Tap the <strong>Menu</strong> button <span style="font-size: 1.2em;">⋮</span> (top right corner)</li>
+            <li>Tap <strong>"Add to Home screen"</strong> or <strong>"Install app"</strong></li>
+            <li>Tap <strong>"Add"</strong> or <strong>"Install"</strong></li>
+            <li>The app icon will appear on your home screen!</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- Generic Instructions -->
+      <div id="install-generic" style="display: none;">
+        <div style="background: #f8f9fa; border-left: 4px solid #6c7a89; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+          <h4 style="margin-top: 0; color: #2c3e50;">📱 General Instructions:</h4>
+          <ol style="color: #6c7a89; line-height: 1.8; margin: 0; padding-left: 20px;">
+            <li>Look for your browser's menu (usually ⋮ or ⎋)</li>
+            <li>Find "Add to Home Screen" or "Install App" option</li>
+            <li>Follow the prompts to install</li>
+          </ol>
+        </div>
+      </div>
+
+      <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; border-radius: 8px;">
+        <p style="color: #856404; margin: 0; font-size: 0.9em; line-height: 1.6;">
+          <strong>📌 Benefits:</strong> Faster access, works offline (cached), full screen experience, just like a native app!
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Application JavaScript files -->
+<script src="js/config.a3c9e644.js"></script>
+<!-- Combined Links Modal -->
+<div id="camModal" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,0.6); align-items:center; justify-content:center;">
+  <div style="background:white; border-radius:16px; padding:28px 24px; max-width:480px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+    <h3 style="margin:0 0 4px; color:#2c3e50; font-size:1.1em;">🔗 Links for <strong id="camModalSpotName"></strong></h3>
+    <p style="margin:0 0 18px; color:#95a5a6; font-size:0.82em;">Icons appear automatically once a URL is saved.</p>
+
+    <label style="display:block; font-weight:700; color:#2c3e50; font-size:0.88em; margin-bottom:6px;">📷 Live Camera</label>
+    <input type="url" id="camUrlInput" placeholder="https://example.com/webcam" style="width:100%; padding:10px 14px; border:2px solid #dde1e7; border-radius:10px; font-size:0.9em; outline:none; box-sizing:border-box; margin-bottom:18px;" />
+
+    <label style="display:block; font-weight:700; color:#2c3e50; font-size:0.88em; margin-bottom:6px;">📡 Real-time Data <span style="font-weight:400; color:#95a5a6;">(Windguru, Windy, station…)</span></label>
+    <input type="url" id="dataUrlInput" placeholder="https://www.windguru.cz/station/..." style="width:100%; padding:10px 14px; border:2px solid #a9dfbf; border-radius:10px; font-size:0.9em; outline:none; box-sizing:border-box; margin-bottom:22px;" />
+
+    <div style="display:flex; gap:10px; justify-content:flex-end;">
+      <button type="button" id="camCancelBtn" style="padding:9px 18px; background:#ecf0f1; color:#7f8c8d; border:none; border-radius:10px; font-weight:700; cursor:pointer; font-size:0.9em;">Cancel</button>
+      <button type="button" id="camSaveBtn" style="padding:9px 22px; background:#2980b9; color:white; border:none; border-radius:10px; font-weight:700; cursor:pointer; font-size:0.9em;">💾 Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/storage.f7671b0d.js"></script>
+<script src="js/utils.6947b549.js"></script>
+<script src="js/state.4c0c4140.js"></script>
+<script src="js/folders.7d6538cb.js"></script>
+<script src="js/bestspots.15322e4c.js"></script>
+<script src="js/manage.713c9503.js"></script>
+<script src="js/fetch.6dc7cb88.js"></script>
+<script src="js/charts.70e7d4e5.js"></script>
+<script src="js/modals.1a706580.js"></script>
+<script src="js/settings.18975c33.js"></script>
+<script src="js/calibration.1915c29e.js"></script>
+<script src="js/cloudsync.0960f0c8.js"></script>
+<script src="js/install.304bc7af.js"></script>
+<script src="js/init.f0ee8c82.js"></script>
+</body>
+</html>
