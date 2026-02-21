@@ -1,0 +1,222 @@
+/* Charts and forecast display */
+.day-separator {
+  background: #3498db;
+  color: #fff;
+  padding: 7px;
+  margin-top: 12px;
+  text-align: center;
+  font-weight: 900;
+  border-radius: 6px;
+  font-size: 0.95em;
+}
+
+.day-block {
+  display: flex;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  margin-top: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.y-axis {
+  width: 36px;
+  flex: 0 0 36px;
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  background: #fff;
+  padding: 6px 3px;
+}
+
+.y-axis .unit {
+  font-size: 10px;
+  font-weight: 900;
+  color: #2c3e50;
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.y-axis .ticks {
+  height: 160px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #555;
+  text-align: right;
+  padding-right: 3px;
+  font-weight: 900;
+}
+
+.day-scroll {
+  flex: 1 1 auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 8px 0;
+}
+
+.day-scroll-inner {
+  padding: 0 8px;
+}
+
+.chart-wrapper {
+  position: relative;
+  height: 160px;
+  margin-bottom: 4px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.wind-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.chart-wrapper canvas.chart {
+  position: relative;
+  z-index: 1;
+  display: block;
+}
+
+.direction-wrapper {
+  display: flex;
+  align-items: stretch;
+  margin-top: 8px;
+}
+
+.direction-labels {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  background: linear-gradient(to bottom, #d6eaf8 0%, #d6eaf8 50%, #d0ece7 50%, #d0ece7 100%);
+  border-radius: 8px 0 0 8px;
+  padding: 8px 6px;
+  min-width: 45px;
+  border-right: 2px solid #95a5a6;
+}
+
+.dir-label {
+  font-size: 0.7em;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.wind-label {
+  color: #2471a3;
+}
+
+.wave-label {
+  color: #117a65;
+}
+
+.direction-row {
+  display: flex;
+  background: linear-gradient(to bottom, #ebf5fb 0%, #ebf5fb 58%, #e8f8f5 58%, #e8f8f5 100%);
+  border-radius: 0 8px 8px 0;
+  padding: 8px 0;
+  flex: 1;
+  position: relative;
+}
+
+.direction-row::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 58%;
+  height: 1px;
+  background: #95a5a6;
+  z-index: 1;
+}
+
+.weather-row {
+  display: flex;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 6px 0;
+  margin-top: 6px;
+}
+
+.time-row {
+  display: flex;
+  padding: 6px 0;
+}
+
+.direction-item,
+.time-item {
+  text-align: center;
+  flex-shrink: 0;
+  padding: 3px 2px;
+}
+
+.weather-item {
+  text-align: center;
+  flex-shrink: 0;
+  padding: 3px 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.weather-icon {
+  font-size: 1.3em;
+  line-height: 1;
+}
+
+.temp-label {
+  font-size: 0.75em;
+  font-weight: 900;
+  color: #2c3e50;
+  line-height: 1;
+}
+
+.arrow {
+  font-size: 1.12em;
+  line-height: 1;
+}
+
+.degree {
+  font-size: 0.64em;
+  color: #666;
+  line-height: 1.1;
+}
+
+.cardinal {
+  font-size: 0.7em;
+  font-weight: 900;
+  color: #2c3e50;
+  margin-top: 2px;
+  line-height: 1;
+}
+
+.time-label {
+  font-size: 0.72em;
+  font-weight: 900;
+  color: #2c3e50;
+}
+
+.wave-axis {
+  width: 36px;
+  flex: 0 0 36px;
+  border-left: 1px solid rgba(0, 0, 0, 0.08);
+  background: #fff;
+  padding: 6px 3px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.wave-label {
+  font-size: 0.7em;
+  font-weight: 900;
+  color: #2c3e50;
+  text-align: center;
+  line-height: 1;
+}

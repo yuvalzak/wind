@@ -1,0 +1,228 @@
+/* Management bar and status indicators */
+.managebar {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  background: #fff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  align-items: center;
+}
+
+.pill {
+  background: #f8f9fa;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-weight: 900;
+  color: #2c3e50;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pill small {
+  font-weight: 800;
+  color: #6c7a89;
+}
+
+/* Gust indicator (red + dashed) */
+.gustIcon {
+  width: 16px;
+  height: 0;
+  border-top: 3px dashed #e53935;
+  display: inline-block;
+  transform: translateY(1px);
+}
+
+.waveDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  display: inline-block;
+}
+
+.aqiDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  display: inline-block;
+}
+
+.managecard {
+  width: 100%;
+  max-width: 1180px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 14px;
+  background: #fff;
+  padding: 10px 12px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.manage-left {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.manage-title {
+  font-weight: 700;
+  color: #2c3e50;
+  font-size: 1.05em;
+  letter-spacing: 0.01em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.map-edit-btn {
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  font-size: 1.1em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.map-edit-btn:hover {
+  background: #2980b9;
+  transform: scale(1.05);
+}
+
+.map-edit-btn:active {
+  transform: scale(0.95);
+}
+
+.manage-sub {
+  font-weight: 900;
+  color: #6c7a89;
+  font-size: 0.86em;
+}
+
+.manage-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* Data frames for grouping wind and wave data */
+.data-frame {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 2px solid;
+  background: #fff;
+  min-width: fit-content;
+}
+
+.wind-frame {
+  border-color: #3498db;
+  background: linear-gradient(135deg, #ffffff 0%, #ebf5fb 100%);
+}
+
+.wave-frame {
+  border-color: #16a085;
+  background: linear-gradient(135deg, #ffffff 0%, #e8f8f5 100%);
+}
+
+.conditions-frame {
+  border-color: #9b59b6;
+  background: linear-gradient(135deg, #ffffff 0%, #f4ecf7 100%);
+}
+
+.frame-label {
+  font-weight: 900;
+  font-size: 0.9em;
+  color: #2c3e50;
+  text-align: center;
+  padding-bottom: 4px;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.08);
+  letter-spacing: 0.02em;
+}
+
+.wind-frame .frame-label {
+  color: #2980b9;
+}
+
+.wave-frame .frame-label {
+  color: #138d75;
+}
+
+.conditions-frame .frame-label {
+  color: #8e44ad;
+}
+
+.frame-content {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.frame-content .pill {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* One big outer frame containing selected spot + all three data frames */
+.data-frames-outer {
+  width: 100%;
+  max-width: 1180px;
+  border: 2px solid #dce3ea;
+  border-radius: 16px;
+  background: #f8fafc;
+  padding: 12px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+/* Selected spot frame — sits inside the big outer frame */
+.selected-frame {
+  flex: 1 1 280px;
+  border: 2px solid #e8e8e8;
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.selected-frame-label {
+  font-weight: 900;
+  font-size: 0.8em;
+  color: #7f8c8d;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 5px 12px 4px;
+  background: #f0f3f6;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.selected-frame .managecard {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  width: 100%;
+  max-width: none;
+}
